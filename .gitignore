@@ -1,0 +1,44 @@
+# Ignore build directories
+/build/
+*/build/
+
+# Ignore CMake files
+CMakeCache.txt
+CMakeFiles/
+CMakeLists.txt.user
+CMakeLists.txt.cmake
+Makefile
+*.cmake
+*.o
+*.a
+*.so
+*.dylib
+*.out
+
+# Ignore compiled binaries
+*.exe
+*.out
+*.app
+
+# Ignore IDE files
+.idea/
+.vscode/
+
+# Ignore user-specific files
+*.user
+*.swp
+*.swo
+
+# Ignore dependency directories (e.g., for Boost or other libraries)
+lib/
+*.d
+
+# Ignore coverage reports
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore temporary files created by editors
+*.log
+*.bak
+*.tmp
