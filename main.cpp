@@ -1,21 +1,12 @@
-#include <boost/algorithm/string.hpp>
-#include <iostream>
-#include <string>
-
-using namespace std;
+#include "boost_explore/boost_usage.hpp"
+#include "std_explore/std_usage.hpp"
 
 int main() {
-    std::string str = "Boost C++ Libraries";
+    boost_data_types::optional_example();
+
+    std_data_types::string_example();
+    std_data_types::ptr_example();
+    std_data_types::collections_example();
     
-    // Convert string to lowercase using Boost
-    boost::algorithm::to_lower(str);
-
-    std::cout << "Lowercase string: " << str << std::endl;
-
-    // Check if the string contains "boost"
-    if (boost::algorithm::contains(str, "boost")) {
-        std::cout << "String contains 'boost'!" << std::endl;
-    }
-
     return 0;
 }
