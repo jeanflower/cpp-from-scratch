@@ -48,6 +48,61 @@ namespace geomAPI_examples {
     }
   }
 
+  template <typename PtCollection, typename LineCollection>
+  void writeGeometryToJSON(
+    const PtCollection& pts,  // positions for points
+    const LineCollection& polylines // positions for polyline vertices
+  ) {
+    try {
+      // Write this data to a json file for viewing to pick up
+      std::ofstream debugFile("viewer/public/output/view_data.json");
+      if (!debugFile) {
+          std::cerr << "Error opening file for writing.\n";
+          return;
+      }
+      // we'll redirect cout to write to json file
+      std::streambuf* coutBuf = std::cout.rdbuf(); // Save the original buffer
+
+      std::cout.rdbuf(debugFile.rdbuf());  // Redirect std::cout to the file
+      std::cout << "{\"pts\":[\n";
+      for (size_t i = 0; i < pts.size(); ++i) {
+          const gp_Pnt& pt = pts[i];
+          std::cout 
+            << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
+          if (i != pts.size() - 1) {
+            std::cout << ",";
+          }
+          std::cout << "\n"; // new point on a new line of the json file
+      }
+      std::cout << "],\n\"polylines\":[\n";
+
+      for (size_t polyLineIndex = 0; polyLineIndex < polylines.size(); ++polyLineIndex) {
+        std::cout << "[\n";
+        const auto polyLine = polylines[polyLineIndex];
+        for (size_t segIndex = 0; segIndex < polyLine.size(); ++segIndex) {
+
+            const gp_Pnt& pt = polyLine[segIndex];
+            std::cout 
+              << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
+            if (segIndex != polyLine.size() - 1) {
+              std::cout << ",";
+            }
+            std::cout << "\n"; // new point on a new line of the json file
+        }
+        std::cout << "]";
+        if (polyLineIndex != polylines.size() - 1) {
+          std::cout << ",";
+        }
+        std::cout << "\n";
+      }
+      std::cout << "]}";
+      // Restore std::cout to its original state
+      std::cout.rdbuf(coutBuf);
+    } catch (Standard_Failure& e) {
+        std::cerr << "Error: " << e.GetMessageString() << std::endl;
+    }  
+  }
+
   gp_Pnt evalSphere(
     Handle(Geom_SphericalSurface) sphere,
     Standard_Real U, 
@@ -86,94 +141,53 @@ namespace geomAPI_examples {
     return position;
   };
 
+
+  // this is an entry point into this file
   void sphere_example() {
 
     Handle(Geom_SphericalSurface) sphere;
     Standard_Real Umin, Umax, Vmin, Vmax;
 
-    try {
-      // Create an axis system (center and orientation of the sphere)
-      gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
+    // Create an axis system (center and orientation of the sphere)
+    gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
 
-      // Create a spherical surface with a radius of 10.0
-      Standard_Real radius = 10.0;
+    // Create a spherical surface with a radius of 10.0
+    Standard_Real radius = 10.0;
 
-      // leaks
-      // const Geom_SphericalSurface* sphere = new Geom_SphericalSurface(axisSystem, radius);
+    // leaks
+    // const Geom_SphericalSurface* sphere = new Geom_SphericalSurface(axisSystem, radius);
 
-      // does not leak
-      //const std::unique_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
-      //const Geom_SphericalSurface* sphere = owner.get();
+    // does not leak
+    //const std::unique_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
+    //const Geom_SphericalSurface* sphere = owner.get();
 
-      // does not leak
-      //const std::shared_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
-      //const Geom_SphericalSurface* sphere = owner.get();
+    // does not leak
+    //const std::shared_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
+    //const Geom_SphericalSurface* sphere = owner.get();
 
-      // does not leak
-      sphere = new Geom_SphericalSurface(axisSystem, radius);
-
-      /*
-      Handle is a smart pointer used specifically within Open CASCADE for managing objects 
-      derived from Standard_Transient and integrates with Open CASCADE’s memory management system, 
-      while std::shared_ptr is a more general-purpose C++ smart pointer used across various types 
-      of objects in standard C++ code.
-      */
-
-      /*
-      // Output some properties of the sphere
-      std::cout << "Sphere radius: " << sphere->Radius() << std::endl;
-      std::cout << "Sphere location: (" 
-                << sphere->Position().Location().X() << ", " 
-                << sphere->Position().Location().Y() << ", " 
-                << sphere->Position().Location().Z() << ")" << std::endl;
-
-      // Query the U and V ranges (parameterization)
-      sphere->Bounds(Umin, Umax, Vmin, Vmax);
-
-      // Print the U and V ranges
-      std::cout << "U range: [" << Umin << ", " << Umax << "]" << std::endl;
-      std::cout << "V range: [" << Vmin << ", " << Vmax << "]" << std::endl;
-      */
-
-    } catch (Standard_Failure& e) {
-        std::cerr << "Error: " << e.GetMessageString() << std::endl;
-    }
+    // does not leak
+    sphere = new Geom_SphericalSurface(axisSystem, radius);
 
     /*
-    try{
-      // Choose a point (U, V) within the valid ranges
-      Standard_Real U = Umin + (Umax - Umin) / 2;  // Choose middle of U range
-      Standard_Real V = Vmin + (Vmax - Vmin) / 2;  // Choose middle of V range
-
-      evalSphere(sphere, U, V, true);
-
-    } catch (Standard_Failure& e) {
-      std::cerr << "Error: " << e.GetMessageString() << std::endl;
-    }
+    Handle is a smart pointer used specifically within Open CASCADE for managing objects 
+    derived from Standard_Transient and integrates with Open CASCADE’s memory management system, 
+    while std::shared_ptr is a more general-purpose C++ smart pointer used across various types 
+    of objects in standard C++ code.
     */
 
-    // Redirect std::cout to a file for viewing
-    std::ofstream debugFile("viewer/public/output/view_data.json");
-    if (!debugFile) {
-        std::cerr << "Error opening file for writing.\n";
-        return;
-    }
-
-    // we'll redirect cout to write to json file
-    std::streambuf* coutBuf = std::cout.rdbuf(); // Save the original buffer
-
-    try{
+    // build a collection of surface positions
+    const int MAX_I = 5000;
+    std::array<gp_Pnt, MAX_I> pts; // collection of data to plot as points
+    {
       // select some uvs on the surface
-      const int MAX_I = 3000;
       std::array<std::pair<double, double>, MAX_I> uvs;
       for (int i = 0; i < MAX_I; i++) {
         uvs[i] = std::make_pair(
-          0.0 + 17 * 2 * M_PI * i / MAX_I, 
-          0.1 + 11 * 2 * M_PI * i / MAX_I
+          0.0 +       5 * 2 * M_PI * i / MAX_I,  // winding around the sphere
+          M_PI / 10 + 8 * 2 * M_PI * i / MAX_I   // like a LissaJous curve
         );
       }
-      // build a collection of surface positions
-      std::array<gp_Pnt, MAX_I> pts;
+
       auto evaluator = [sphere](const std::pair<double, double>& uv) {
         return evalSphere(sphere, uv.first, uv.second, false);
       };
@@ -184,31 +198,56 @@ namespace geomAPI_examples {
         pts.begin(),
         evaluator
       );
-
-      std::cout.rdbuf(debugFile.rdbuf());          // Redirect std::cout to the file
-      std::cout << "[\n";
-      for (size_t i = 0; i < pts.size(); ++i) {
-          const gp_Pnt& pt = pts[i];
-          std::cout 
-            << "  { \"x\": " 
-            << pt.X() 
-            << ", \"y\": " 
-            << pt.Y() 
-            << ", \"z\": " 
-            << pt.Z() 
-            << "}";
-          if (i != pts.size() - 1) {
-              std::cout << ",";
-          }
-          std::cout << "\n";
-      }
-      std::cout << "]\n";
-
-    } catch (Standard_Failure& e) {
-        std::cerr << "Error: " << e.GetMessageString() << std::endl;
     }
 
-    // Restore std::cout to its original state
-    std::cout.rdbuf(coutBuf);
+    // build a collection of surface positions
+    const int MAX_LAT = 8;
+
+    std::vector<std::array<gp_Pnt, MAX_I + 1>> linesVector; // collection of data to plot as polyline vxs
+    for (int lineIndex = 0; lineIndex < MAX_LAT; lineIndex++) {
+      std::array<gp_Pnt, MAX_I + 1> lines;
+      std::array<std::pair<double, double>, MAX_I + 1> lines_uvs;
+      for (int i = 0; i < MAX_I + 1; i++) {
+        lines_uvs[i] = std::make_pair(
+          2 * M_PI * i / MAX_I,   // winding around the sphere
+          -M_PI / 2 + M_PI * lineIndex / MAX_LAT 
+        );
+      }
+      auto evaluator = [sphere](const std::pair<double, double>& uv) {
+        return evalSphere(sphere, uv.first, uv.second, false);
+      };
+      // Use std::transform to apply the evaluation
+      std::transform(
+        lines_uvs.begin(), 
+        lines_uvs.end(), 
+        lines.begin(),
+        evaluator
+      );
+      linesVector.push_back(lines);
+    }
+    for (int lineIndex = 0; lineIndex < MAX_LAT; lineIndex++) {
+      std::array<gp_Pnt, MAX_I + 1> lines;
+      std::array<std::pair<double, double>, MAX_I + 1> lines_uvs;
+      for (int i = 0; i < MAX_I + 1; i++) {
+        lines_uvs[i] = std::make_pair(
+          2 * M_PI * lineIndex / MAX_LAT,
+          -M_PI / 2 + M_PI * i / MAX_I 
+        );
+      }
+      auto evaluator = [sphere](const std::pair<double, double>& uv) {
+        return evalSphere(sphere, uv.first, uv.second, false);
+      };
+      // Use std::transform to apply the evaluation
+      std::transform(
+        lines_uvs.begin(), 
+        lines_uvs.end(), 
+        lines.begin(),
+        evaluator
+      );
+      linesVector.push_back(lines);
+    }
+
+    writeGeometryToJSON(pts, linesVector);
+     
   }
 }

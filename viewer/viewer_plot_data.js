@@ -15,23 +15,46 @@ new OrbitControls(camera, renderer.domElement)
 fetch("output/view_data.json")
     .then(response => 
       {
-        console.log(`got response from view_data.json file ${JSON.stringify(response)}`)
         return response.json();
       }
     )
     .then(data => {
-        // Create a geometry to hold points
-        const geometry = new THREE.BufferGeometry();
-        const points = new Float32Array(data.flatMap(d => [d.x, d.y, d.z]));
-        geometry.setAttribute("position", new THREE.BufferAttribute(points, 3));
 
-        // Create a material for the points
-        const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.05 });
-        const pointCloud = new THREE.Points(geometry, material);
+        const addPointsToScene = (triples) => {
+          if (!triples) {
+            return;
+          }
+          // Create a geometry to hold points
+          const geometry = new THREE.BufferGeometry();
+          // make a flattened map of the coordinates
+          const points = new Float32Array(triples.flatMap(d => [d.x, d.y, d.z]));
+          // console.log(`point data is ${points}`);
+          geometry.setAttribute("position", new THREE.BufferAttribute(points, 3));
+          // Create a material for the points
+          const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.03 });
+          const pointCloud = new THREE.Points(geometry, material);
+          // Add the points to the scene
+          scene.add(pointCloud);
+        }
+        addPointsToScene(data.pts);
 
-        // Add the points to the scene
-        scene.add(pointCloud);
-                
+        const addPolylineToScene = (triples) => {
+          // Create a geometry to hold line segment vertices
+          const geometry = new THREE.BufferGeometry();
+          // Create a flattened array of vertex coordinates for the line segments
+          const vertices = new Float32Array(triples.flatMap(d => [d.x, d.y, d.z]));
+          // console.log(`polyline data is ${vertices}`);
+          geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+      
+          // Create a material for the line segments
+          const material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
+      
+          // Create the line segments and add them to the scene
+          const lineSegments = new THREE.Line(geometry, material);
+          scene.add(lineSegments);
+        };
+        data.polylines.map(addPolylineToScene);
+
         // Animate the scene
         animate();
     });
