@@ -12,10 +12,10 @@ document.body.appendChild(renderer.domElement);
 new OrbitControls(camera, renderer.domElement)
 
 // Parse the XYZ data from the JSON file
-fetch("output/xyz_coordinates.json")
+fetch("output/view_data.json")
     .then(response => 
       {
-        console.log(`got response from xyz_coordinates.json file ${JSON.stringify(response)}`)
+        console.log(`got response from view_data.json file ${JSON.stringify(response)}`)
         return response.json();
       }
     )

@@ -153,7 +153,7 @@ namespace geomAPI_examples {
     */
 
     // Redirect std::cout to a file for viewing
-    std::ofstream debugFile("viewer/public/output/xyz_coordinates.json");
+    std::ofstream debugFile("viewer/public/output/view_data.json");
     if (!debugFile) {
         std::cerr << "Error opening file for writing.\n";
         return;

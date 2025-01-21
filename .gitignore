@@ -49,3 +49,4 @@ lib/
 
 # Ignore viewer packages
 /viewer/node_modules
+/viewer/public/output
