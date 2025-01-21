@@ -2,6 +2,10 @@
 /build/
 */build/
 
+# Ignore output directories
+/output/
+*/output/
+
 # Ignore CMake files
 CMakeCache.txt
 CMakeFiles/
@@ -42,3 +46,6 @@ lib/
 *.log
 *.bak
 *.tmp
+
+# Ignore viewer packages
+/viewer/node_modules

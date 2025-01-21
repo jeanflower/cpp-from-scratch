@@ -15,32 +15,40 @@ find_package(Catch2 3 REQUIRED)
 # Find Boost package
 set(BOOST_ROOT "/usr/local/Cellar/boost/1.87.0/")
 find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system)
+find_package(OpenCASCADE REQUIRED)
 
-
+# Add include directories
 # Manually include Catch2 headers
 include_directories("/usr/local/Cellar/catch2/3.8.0/include")
-# Add include directories
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${OpenCASCADE_INCLUDE_DIR})
 
 # Add the include directory for your headers
 include_directories(boost_explore)
 include_directories(std_explore)
+include_directories(geomAPI_explore)
+
+link_directories(${OpenCASCADE_LIBRARY_DIR})
 
 # Add the source files
 add_library(boost_explore_lib boost_explore/boost_usage.cpp)
 add_library(std_explore_lib std_explore/std_usage.cpp)
+add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
 
-# Add executable target (your main application)
+# Add executable target (your main file)
 add_executable(main main.cpp)
 # Add a test executable (your test file)
 add_executable(test_main test_main.cpp)
 
-# Link Boost libraries to your project
-target_link_libraries(main ${Boost_LIBRARIES})
-# Link the libraries to your main executable
-target_link_libraries(main boost_explore_lib)
-target_link_libraries(main std_explore_lib)
-# Link Catch2 with the test executable
+# Link external libraries to main
+target_link_libraries(main 
+    PRIVATE ${Boost_LIBRARIES} 
+            TKernel TKMath TKGeomBase TKGeomAlgo
+            boost_explore_lib 
+            std_explore_lib
+            geomAPI_lib
+)
+
 target_link_libraries(test_main Catch2::Catch2WithMain)
 
 # Enable testing

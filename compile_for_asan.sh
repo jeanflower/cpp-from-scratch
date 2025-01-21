@@ -8,7 +8,15 @@ cd ..
 
 echo "Build with clang"
 #clang++ -std=c++17 -fsanitize=address -g -o build/main main.cpp
-clang++ -std=c++17 -g -o build/main main.cpp boost_explore/boost_usage.cpp std_explore/std_usage.cpp
+clang++ -std=c++17 -g -o build/main \
+    -arch x86_64 \
+    -I/usr/local/Cellar/opencascade/7.8.1_1/include/opencascade \
+    -L/usr/local/Cellar/opencascade/7.8.1_1/lib \
+    -lTKernel -lTKMath -lTKG2d -lTKG3d -lTKGeomBase -lTKGeomAlgo \
+    main.cpp \
+    boost_explore/boost_usage.cpp \
+    std_explore/std_usage.cpp \
+    geom_explore/geomAPI_usage.cpp
 
 # Run the program and analyze leaks
 leaks -atExit -- ./build/main
