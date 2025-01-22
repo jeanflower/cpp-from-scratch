@@ -22,7 +22,7 @@ This project provides multiple ways to build and run the code:
 
 ## View
 
-- The C++ code generates a JSON output file at [`viewer/public/output/view_data.json`](viewer/public/output/view_data.json).
+- The C++ code generates a JSON output file at **`viewer/public/output/view_data.json`** (outside git).
 - The Vite web server processes this file and uses it in [`viewer/viewer_plot_data.js`](viewer/viewer_plot_data.js) to render visualizations.
 
 ## Content
