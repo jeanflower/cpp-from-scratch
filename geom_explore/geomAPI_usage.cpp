@@ -2,9 +2,8 @@
 #include <gp_Vec.hxx>
 #include <gp_Ax3.hxx>
 #include <Standard_Handle.hxx>
-#include <Geom_Plane.hxx>
 #include <Geom_SphericalSurface.hxx>
-#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <Geom_ToroidalSurface.hxx>
 #include <iostream>
 #include <iomanip>
 
@@ -14,38 +13,6 @@ namespace geomAPI_examples {
     std::ostringstream stream;
     stream << std::fixed << std::setprecision(precision) << value;
     return stream.str();  // Return the formatted value as a string
-  }
-
-  std::pair<double, double> projectPointOntoPlane(
-    const gp_Pnt& point, 
-    const gp_Ax3& planeAxis
-  ) {
-    // Define a plane using gp_Ax3 (origin, X-axis direction, and Z-axis direction)
-    Handle(Geom_Plane) plane = new Geom_Plane(planeAxis);
-
-    // Project the point onto the plane
-    GeomAPI_ProjectPointOnSurf projector(point, plane);
-
-    if (projector.IsDone() && projector.NbPoints() > 0) {
-        // Get the projected point on the plane
-        gp_Pnt projectedPoint = projector.Point(1);
-
-        // Get (u, v) parameters of the projected point on the plane
-        double u, v;
-        projector.Parameters(1, u, v);
-
-        // Output the results
-        //std::cout << "Original Point: (" << point.X() << ", " << point.Y() << ", " << point.Z() << ")\n";
-        //std::cout << "Projected Point: (" << projectedPoint.X() << ", " << projectedPoint.Y() << ", " << projectedPoint.Z() << ")\n";
-        // std::cout << "\tU\t" << u << "\tV\t " << v;
-        return std::pair<double, double>(u,v);
-    } else {
-        std::cerr << "Projection failed.\n";
-        return std::make_pair(
-          std::numeric_limits<double>::quiet_NaN(),
-          std::numeric_limits<double>::quiet_NaN()
-        );
-    }
   }
 
   template <typename PtCollection, typename LineCollection>
@@ -103,55 +70,33 @@ namespace geomAPI_examples {
     }  
   }
 
-  gp_Pnt evalSphere(
-    Handle(Geom_SphericalSurface) sphere,
-    Standard_Real U, 
-    Standard_Real V,
-    bool printDerivs
+  // instead of spelling out (and fixing) the types here, use a template
+  // and let the compiler work out how to map the types
+  template <typename PtCollection, typename LineCollection, typename EvalFunc>
+  void createOutputFile(
+    const PtCollection& ptUvs,
+    const LineCollection& lineUVLists,
+    const EvalFunc& evalSurface
   ) {
-    // Evaluate the position and derivatives at the chosen (U, V)
-    gp_Vec dU, dV, d2U, d2V, dUV;
+    // build a collection of surface positions
+    std::vector<gp_Pnt> pts(ptUvs.size());
+    std::transform(ptUvs.begin(), ptUvs.end(), pts.begin(), evalSurface);
 
-    // Evaluate position and first derivatives (tangents)
-    gp_Pnt position = sphere->Value(U, V);         // Point on the surface
-
-    if(printDerivs) {
-        std::cout << formatValue(U) << "\t" << formatValue(V) << "\t"
-                  << formatValue(position.X()) << "\t"
-                  << formatValue(position.Y()) << "\t" 
-                  << formatValue(position.Z()) << std::endl;
-
-        gp_Vec dU, dV;
-        sphere->D1(U, V, position, dU, dV);    // First derivatives (tangents)
-        std::cout << "\td/du = \t\t(" 
-                  << formatValue(dU.X()) << ", " << formatValue(dU.Y()) << ", " << formatValue(dU.Z()) << ")" << std::endl;
-        std::cout << "\td/dv = \t\t(" 
-                  << formatValue(dV.X()) << ", " << formatValue(dV.Y()) << ", " << formatValue(dV.Z()) << ")" << std::endl;
-        
-
-        // Evaluate second derivatives (curvature)
-        sphere->D2(U, V, position, dU, dV, d2U, d2V, dUV);  // Second derivatives
-        std::cout << "\td2/du2 = \t(" 
-                  << formatValue(d2U.X()) << ", " << formatValue(d2U.Y()) << ", " << formatValue(d2U.Z()) << ")" << std::endl;
-        std::cout << "\td2/dv2 = \t(" 
-                  << formatValue(d2V.X()) << ", " << formatValue(d2V.Y()) << ", " << formatValue(d2V.Z()) << ")" << std::endl;
-        std::cout << "\td2/dudv = \t(" 
-                  << formatValue(d2V.X()) << ", " << formatValue(dUV.Y()) << ", " << formatValue(dUV.Z()) << ")" << std::endl;
+    std::vector<std::vector<gp_Pnt>> lineVxsVector; 
+    for (const auto uvs : lineUVLists) {
+      std::vector<gp_Pnt> lineVertices(uvs.size());
+      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
+      lineVxsVector.push_back(lineVertices);
     }
-    return position;
-  };
 
+    writeGeometryToJSON(pts, lineVxsVector);
+  }
 
   // this is an entry point into this file
   void sphere_example() {
 
-    Handle(Geom_SphericalSurface) sphere;
-    Standard_Real Umin, Umax, Vmin, Vmax;
-
-    // Create an axis system (center and orientation of the sphere)
+    // Create an axis system for center and orientation of the sphere
     gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
-
-    // Create a spherical surface with a radius of 10.0
     Standard_Real radius = 10.0;
 
     // leaks
@@ -165,8 +110,11 @@ namespace geomAPI_examples {
     //const std::shared_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
     //const Geom_SphericalSurface* sphere = owner.get();
 
-    // does not leak
-    sphere = new Geom_SphericalSurface(axisSystem, radius);
+    // does not leak, uses internal OpenCascade memory management system
+    Handle(Geom_SphericalSurface) sphere = new Geom_SphericalSurface(axisSystem, radius);
+    auto evalSphere = [sphere](const std::pair<double, double>& uv) {
+      return sphere->Value(uv.first, uv.second);
+    };
 
     /*
     Handle is a smart pointer used specifically within Open CASCADE for managing objects 
@@ -175,79 +123,103 @@ namespace geomAPI_examples {
     of objects in standard C++ code.
     */
 
-    // build a collection of surface positions
-    const int MAX_I = 5000;
-    std::array<gp_Pnt, MAX_I> pts; // collection of data to plot as points
-    {
-      // select some uvs on the surface
-      std::array<std::pair<double, double>, MAX_I> uvs;
-      for (int i = 0; i < MAX_I; i++) {
+    const int NUM_SAMPLES = 5000;
+
+    // select some uvs on the surface
+    std::array<std::pair<double, double>, NUM_SAMPLES> ptUvs;
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+      ptUvs[i] = std::make_pair(
+        0.0 +       5 * 2 * M_PI * i / NUM_SAMPLES,  // winding around the sphere
+        M_PI / 10 + 8 * 2 * M_PI * i / NUM_SAMPLES   // like a LissaJous curve
+      );
+    }
+
+    std::vector<std::vector<std::pair<double, double>>> lineUVLists;
+
+    // build uvs for isolines with constant V
+    const int MAX_ISO = 8;
+    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+      // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
+      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
-          0.0 +       5 * 2 * M_PI * i / MAX_I,  // winding around the sphere
-          M_PI / 10 + 8 * 2 * M_PI * i / MAX_I   // like a LissaJous curve
+          2 * M_PI * i / NUM_SAMPLES, // winding around the sphere
+          -M_PI / 2 + M_PI * lineIndex / MAX_ISO // constant V
         );
       }
-
-      auto evaluator = [sphere](const std::pair<double, double>& uv) {
-        return evalSphere(sphere, uv.first, uv.second, false);
-      };
-      // Use std::transform to apply the evaluation
-      std::transform(
-        uvs.begin(), 
-        uvs.end(), 
-        pts.begin(),
-        evaluator
-      );
+      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
-
-    // build a collection of surface positions
-    const int MAX_LAT = 8;
-
-    std::vector<std::array<gp_Pnt, MAX_I + 1>> linesVector; // collection of data to plot as polyline vxs
-    for (int lineIndex = 0; lineIndex < MAX_LAT; lineIndex++) {
-      std::array<gp_Pnt, MAX_I + 1> lines;
-      std::array<std::pair<double, double>, MAX_I + 1> lines_uvs;
-      for (int i = 0; i < MAX_I + 1; i++) {
-        lines_uvs[i] = std::make_pair(
-          2 * M_PI * i / MAX_I,   // winding around the sphere
-          -M_PI / 2 + M_PI * lineIndex / MAX_LAT 
+    // build uvs for isolines with constant U
+    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+      std::array<gp_Pnt, NUM_SAMPLES + 1> lineVertices;
+      // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
+      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+        uvs[i] = std::make_pair(
+          2 * M_PI * lineIndex / MAX_ISO, // constant U
+          -M_PI / 2 + M_PI * i / NUM_SAMPLES // winding around the sphere
         );
       }
-      auto evaluator = [sphere](const std::pair<double, double>& uv) {
-        return evalSphere(sphere, uv.first, uv.second, false);
-      };
-      // Use std::transform to apply the evaluation
-      std::transform(
-        lines_uvs.begin(), 
-        lines_uvs.end(), 
-        lines.begin(),
-        evaluator
-      );
-      linesVector.push_back(lines);
-    }
-    for (int lineIndex = 0; lineIndex < MAX_LAT; lineIndex++) {
-      std::array<gp_Pnt, MAX_I + 1> lines;
-      std::array<std::pair<double, double>, MAX_I + 1> lines_uvs;
-      for (int i = 0; i < MAX_I + 1; i++) {
-        lines_uvs[i] = std::make_pair(
-          2 * M_PI * lineIndex / MAX_LAT,
-          -M_PI / 2 + M_PI * i / MAX_I 
-        );
-      }
-      auto evaluator = [sphere](const std::pair<double, double>& uv) {
-        return evalSphere(sphere, uv.first, uv.second, false);
-      };
-      // Use std::transform to apply the evaluation
-      std::transform(
-        lines_uvs.begin(), 
-        lines_uvs.end(), 
-        lines.begin(),
-        evaluator
-      );
-      linesVector.push_back(lines);
+      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    writeGeometryToJSON(pts, linesVector);
-     
+    createOutputFile(ptUvs, lineUVLists, evalSphere);
   }
+
+    // this is an entry point into this file
+  void torus_example() {
+
+    // Create an axis system for center and orientation of the sphere
+    gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
+    Standard_Real minorRadius = 5.0;
+    Standard_Real majorRadius = 30.0;
+
+    Handle(Geom_ToroidalSurface) torus = new Geom_ToroidalSurface(axisSystem, majorRadius, minorRadius);
+    auto evalSphere = [torus](const std::pair<double, double>& uv) {
+      return torus->Value(uv.first, uv.second);
+    };
+
+    const int NUM_SAMPLES = 5000;
+
+    // select some uvs on the surface
+    std::array<std::pair<double, double>, NUM_SAMPLES> ptUvs;
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+      ptUvs[i] = std::make_pair(
+        0.0 +       5 * 2 * M_PI * i / NUM_SAMPLES,  // winding around the sphere
+        M_PI / 10 + 8 * 2 * M_PI * i / NUM_SAMPLES   // like a LissaJous curve
+      );
+    }
+
+    std::vector<std::vector<std::pair<double, double>>> lineUVLists;
+
+    // build uvs for isolines with constant V
+    const int MAX_ISO = 8;
+    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+      // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
+      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+        uvs[i] = std::make_pair(
+          2 * M_PI * i / NUM_SAMPLES, // winding around the sphere
+          2 * M_PI * lineIndex / MAX_ISO // constant V
+        );
+      }
+      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+    }
+    // build uvs for isolines with constant U
+    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+      std::array<gp_Pnt, NUM_SAMPLES + 1> lineVertices;
+      // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
+      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+        uvs[i] = std::make_pair(
+          2 * M_PI * lineIndex / MAX_ISO, // constant U
+          2 * M_PI * i / NUM_SAMPLES // winding around the sphere
+        );
+      }
+      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+    }
+
+    createOutputFile(ptUvs, lineUVLists, evalSphere);
+  }
+
 }

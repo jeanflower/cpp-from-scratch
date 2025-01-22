@@ -9,7 +9,8 @@ int main() {
     //std_data_types::ptr_example();
     //std_data_types::collections_example();
     
-    geomAPI_examples::sphere_example();
+    //geomAPI_examples::sphere_example();
+    geomAPI_examples::torus_example();
 
     return 0;
 }
