@@ -10,6 +10,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
+# Add debugging and AddressSanitizer flags for debug builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options(-D_GLIBCXX_DEBUG -fsanitize=address -g)
+  add_link_options(-fsanitize=address)
+endif()
+
 # Find Catch2 package
 find_package(Catch2 3 REQUIRED)
 # Find Boost package
