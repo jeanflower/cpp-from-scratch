@@ -40,6 +40,7 @@ link_directories(${OpenCASCADE_LIBRARY_DIR})
 add_library(boost_explore_lib boost_explore/boost_usage.cpp)
 add_library(std_explore_lib std_explore/std_usage.cpp)
 add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
+add_library(geom_lib geom_explore/geom.cpp)
 
 # Add executable target (your main file)
 add_executable(main main.cpp)
@@ -53,6 +54,7 @@ target_link_libraries(main
             boost_explore_lib 
             std_explore_lib
             geomAPI_lib
+            geom_lib
 )
 
 target_link_libraries(test_main Catch2::Catch2WithMain)

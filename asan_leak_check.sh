@@ -16,7 +16,8 @@ clang++ -std=c++17 -g -o build/main \
     main.cpp \
     boost_explore/boost_usage.cpp \
     std_explore/std_usage.cpp \
-    geom_explore/geomAPI_usage.cpp
+    geom_explore/geomAPI_usage.cpp \
+    geom_explore/geom.cpp
 
 # Run the program and analyze leaks
 leaks -atExit -- ./build/main

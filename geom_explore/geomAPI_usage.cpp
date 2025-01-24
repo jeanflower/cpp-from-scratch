@@ -5,7 +5,9 @@
 #include <Geom_SphericalSurface.hxx>
 #include <Geom_ToroidalSurface.hxx>
 #include <iostream>
-#include <iomanip>
+//#include <iomanip>
+//#include <cmath>
+#include "geom.hpp"
 
 namespace geomAPI_examples {
 
@@ -15,60 +17,6 @@ namespace geomAPI_examples {
     return stream.str();  // Return the formatted value as a string
   }
 
-  template <typename PtCollection, typename LineCollection>
-  void writeGeometryToJSON(
-    const PtCollection& pts,  // positions for points
-    const LineCollection& polylines // positions for polyline vertices
-  ) {
-    try {
-      // Write this data to a json file for viewing to pick up
-      std::ofstream debugFile("viewer/public/output/view_data.json");
-      if (!debugFile) {
-          std::cerr << "Error opening file for writing.\n";
-          return;
-      }
-      // we'll redirect cout to write to json file
-      std::streambuf* coutBuf = std::cout.rdbuf(); // Save the original buffer
-
-      std::cout.rdbuf(debugFile.rdbuf());  // Redirect std::cout to the file
-      std::cout << "{\"pts\":[\n";
-      for (size_t i = 0; i < pts.size(); ++i) {
-          const gp_Pnt& pt = pts[i];
-          std::cout 
-            << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-          if (i != pts.size() - 1) {
-            std::cout << ",";
-          }
-          std::cout << "\n"; // new point on a new line of the json file
-      }
-      std::cout << "],\n\"polylines\":[\n";
-
-      for (size_t polyLineIndex = 0; polyLineIndex < polylines.size(); ++polyLineIndex) {
-        std::cout << "[\n";
-        const auto polyLine = polylines[polyLineIndex];
-        for (size_t segIndex = 0; segIndex < polyLine.size(); ++segIndex) {
-
-            const gp_Pnt& pt = polyLine[segIndex];
-            std::cout 
-              << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-            if (segIndex != polyLine.size() - 1) {
-              std::cout << ",";
-            }
-            std::cout << "\n"; // new point on a new line of the json file
-        }
-        std::cout << "]";
-        if (polyLineIndex != polylines.size() - 1) {
-          std::cout << ",";
-        }
-        std::cout << "\n";
-      }
-      std::cout << "]}";
-      // Restore std::cout to its original state
-      std::cout.rdbuf(coutBuf);
-    } catch (Standard_Failure& e) {
-        std::cerr << "Error: " << e.GetMessageString() << std::endl;
-    }  
-  }
 
   // instead of spelling out (and fixing) the types here, use a template
   // and let the compiler work out how to map the types
@@ -79,17 +27,17 @@ namespace geomAPI_examples {
     const EvalFunc& evalSurface
   ) {
     // build a collection of surface positions
-    std::vector<gp_Pnt> pts(ptUvs.size());
+    std::vector<geom_examples::Point> pts(ptUvs.size());
     std::transform(ptUvs.begin(), ptUvs.end(), pts.begin(), evalSurface);
 
-    std::vector<std::vector<gp_Pnt>> lineVxsVector; 
+    std::vector<std::vector<geom_examples::Point>> lineVxsVector; 
     for (const auto uvs : lineUVLists) {
-      std::vector<gp_Pnt> lineVertices(uvs.size());
+      std::vector<geom_examples::Point> lineVertices(uvs.size());
       std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
       lineVxsVector.push_back(lineVertices);
     }
 
-    writeGeometryToJSON(pts, lineVxsVector);
+    geom_examples::writeGeometryToJSON(pts, lineVxsVector);
   }
 
   // this is an entry point into this file
@@ -113,7 +61,8 @@ namespace geomAPI_examples {
     // does not leak, uses internal OpenCascade memory management system
     Handle(Geom_SphericalSurface) sphere = new Geom_SphericalSurface(axisSystem, radius);
     auto evalSphere = [sphere](const std::pair<double, double>& uv) {
-      return sphere->Value(uv.first, uv.second);
+      const gp_Pnt p = sphere->Value(uv.first, uv.second);
+      return geom_examples::Point(p.X(), p.Y(), p.Z());
     };
 
     /*
@@ -175,8 +124,9 @@ namespace geomAPI_examples {
     Standard_Real majorRadius = 30.0;
 
     Handle(Geom_ToroidalSurface) torus = new Geom_ToroidalSurface(axisSystem, majorRadius, minorRadius);
-    auto evalSphere = [torus](const std::pair<double, double>& uv) {
-      return torus->Value(uv.first, uv.second);
+    auto evalTorus = [torus](const std::pair<double, double>& uv) {
+      const gp_Pnt& p = torus->Value(uv.first, uv.second);
+      return geom_examples::Point(p.X(), p.Y(), p.Z());
     };
 
     const int NUM_SAMPLES = 5000;
@@ -219,7 +169,7 @@ namespace geomAPI_examples {
       lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    createOutputFile(ptUvs, lineUVLists, evalSphere);
+    createOutputFile(ptUvs, lineUVLists, evalTorus);
   }
 
 }
