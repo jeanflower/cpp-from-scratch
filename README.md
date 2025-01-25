@@ -36,3 +36,8 @@ This project provides multiple ways to build and run the code:
   1. [`std_explore`](std_explore): Examples using standard library classes, focusing on performance comparisons of standard collections.
   2. [`boost_explore`](boost_explore): Examples using Boost classes, with emphasis on the `optional` class.
   3. [`geom_explore`](geom_explore): Examples using OpenCascade for geometric operations.
+
+## Profiling
+
+On OSX, open the Instruments.app and select 'CPU Profiler'. In the bar at the top, click to Select Target and select main. Then hut the 'record' button (tooltip 'Start an immediate mode recording').
+
