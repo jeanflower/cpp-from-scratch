@@ -504,10 +504,10 @@ namespace geom_examples {
   const int NUM_SAMPLES = 50;
   const int NUM_EVALS = 20000;
   void no_cache_message(double t) {
-    std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
+    std::cout << "  " << "No cache time\t\t" << t << std::endl;
   }
   void map_simple_cache_message(double t) {
-    std::cout << "  " << "Simple map cache time\t\t" << t << std::endl;
+    std::cout << "  " << "Simple map cache time\t" << t << std::endl;
   }
   void map_emplace_cache_message(double t) {
     std::cout << "  " << "Emplace map cache time\t" << t << std::endl;
