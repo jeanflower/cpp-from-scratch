@@ -147,52 +147,58 @@ namespace geom_examples {
     }
   };
 
+  enum CacheStrategy {
+    NO_CACHE = 0,
+    MAP_CACHE_SIMPLE = 1,
+    MAP_CACHE_EMPLACE = 2,
+    UNORDERED_MAP_CACHE = 3
+  };
+
   class BasisEvaluator {
     private:
       std::vector<double> knotVector;
 
     public:
-      int cacheStrategy = 0;
+      int cacheStrategy = NO_CACHE;
       // strategy 0 uses no cache
-      std::map<std::tuple<int, int, double>, double> basisCache1; // Cache for strategy 1
-      std::unordered_map<std::tuple<int, int, double>, double, KeyHash> basisCache2; // Cache for strategy 2
+      std::map<std::tuple<int, int, double>, double> basisCacheMap; 
+      std::unordered_map<std::tuple<int, int, double>, double, KeyHash> basisCacheUnorderedMap;
 
       BasisEvaluator(
         const std::vector<double>& knotVector,
-        int cacheStrategy = 0
+        int cacheStrategy = NO_CACHE
       ): knotVector(knotVector), cacheStrategy(cacheStrategy) {}
 
       double basisFunction(int i, int p, double t) {
-        if (cacheStrategy == 0) {
+        if (cacheStrategy == NO_CACHE) {
           return basisFunctionNoCache(knotVector, i, p, t);
-        } else if(cacheStrategy == 1) {
+        } else if(cacheStrategy == MAP_CACHE_SIMPLE) {
+          // Use a std::map as a cache to store the basis function values
+          auto key = std::make_tuple(i, p, t);
+          if (basisCacheMap.find(key) == basisCacheMap.end()) {
+            // std::cout << "Cache miss for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
+            basisCacheMap[key] = basisFunctionNoCache(knotVector, i, p, t);
+          } else {
+            // std::cout << "Cache hit for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
+          }
+          return basisCacheMap[key];    
+        } else if(cacheStrategy == MAP_CACHE_EMPLACE) {
           // Use a std::map as a cache to store the basis function values
           auto key = std::make_tuple(i, p, t);
 
           // Use emplace to avoid redundant lookups
-          auto [iter, inserted] = basisCache1.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
+          auto [iter, inserted] = basisCacheMap.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
           if (inserted) {
-              // Cache miss, compute the value
               iter->second = basisFunctionNoCache(knotVector, i, p, t);
-              // Optionally log the cache miss
-              // std::cout << "Cache miss for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
-          } else {
-              // Optionally log the cache hit
-              // std::cout << "Cache hit for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
           }
-          // Return the cached value
           return iter->second;
-        } else if (cacheStrategy == 2) {
+        } else if (cacheStrategy == UNORDERED_MAP_CACHE) {
             // Use an unordered_map-based cache for faster lookups
             auto key = std::make_tuple(i, p, t);
-
-            // Use emplace to avoid redundant lookups
-            auto [iter, inserted] = basisCache2.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
+            auto [iter, inserted] = basisCacheUnorderedMap.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
             if (inserted) {
-                // Cache miss, compute the value
                 iter->second = basisFunctionNoCache(knotVector, i, p, t);
             }
-            // Return the cached value
             return iter->second;
           } else {
           return basisFunctionNoCache(knotVector, i, p, t);
@@ -270,7 +276,7 @@ namespace geom_examples {
   };
 
   NURBS degree2_nurbs_example1(
-    int cacheStrategy = 0
+    int cacheStrategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 2;
@@ -300,7 +306,7 @@ namespace geom_examples {
   }
 
   NURBS degree3_nurbs_example1(
-    int cacheStrategy = 0
+    int cacheStrategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 3;
@@ -332,7 +338,7 @@ namespace geom_examples {
   }
 
   NURBS degree4_nurbs_example1(
-    int cacheStrategy = 0
+    int cacheStrategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 4;
@@ -368,7 +374,7 @@ namespace geom_examples {
   }
 
   NURBS degree6_nurbs_example1(
-    int cacheStrategy = 0
+    int cacheStrategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 6;
@@ -497,76 +503,54 @@ namespace geom_examples {
 
   const int NUM_SAMPLES = 50;
   const int NUM_EVALS = 20000;
-  void doWork0() {
-    const NURBS nurbs = degree2_nurbs_example1(0);
+  void no_cache_message(double t) {
+    std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
+  }
+  void map_simple_cache_message(double t) {
+    std::cout << "  " << "Simple map cache time\t\t" << t << std::endl;
+  }
+  void map_emplace_cache_message(double t) {
+    std::cout << "  " << "Emplace map cache time\t" << t << std::endl;
+  }
+  void unordered_map_cache_message(double t) {
+    std::cout << "  " << "Unordered map cache time\t" << t << std::endl;
+  }
+  void doWork(int d, int cacheStrategy) {
+    const NURBS nurbs = 
+      d == 2 ? degree2_nurbs_example1(cacheStrategy) :
+      d == 4 ? degree4_nurbs_example1(cacheStrategy) :
+      degree6_nurbs_example1(cacheStrategy);
     const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "No cache time\t" << elapsedTime << std::endl;
+    std::cout << "degree 2 ";
+
+    if (cacheStrategy == NO_CACHE) {
+      no_cache_message(elapsedTime);
+    } else if (cacheStrategy == MAP_CACHE_SIMPLE) {
+      map_simple_cache_message(elapsedTime);
+    } else if (cacheStrategy == MAP_CACHE_EMPLACE) {
+      map_emplace_cache_message(elapsedTime);
+    } else if (cacheStrategy == UNORDERED_MAP_CACHE) {
+      unordered_map_cache_message(elapsedTime);
+    }
   }
 
-  void doWork1() {
-    // Plan: pass in a different configuration and expect different profiling results
-    const NURBS nurbs = degree2_nurbs_example1(1);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Map cache time \t" << elapsedTime << std::endl;
-  }
-
-  void doWork2() {
-    const NURBS nurbs = degree2_nurbs_example1(2);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Unordered map\t" << elapsedTime << std::endl;
-  }
-
-  void doWork3() {
-    const NURBS nurbs = degree4_nurbs_example1(0);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "No cache time\t" << elapsedTime << std::endl;
-  }
-
-  void doWork4() {
-    // Plan: pass in a different configuration and expect different profiling results
-    const NURBS nurbs = degree4_nurbs_example1(1);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Map cache time \t" << elapsedTime << std::endl;
-  }
-
-  void doWork5() {
-    const NURBS nurbs = degree4_nurbs_example1(2);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Unordered map\t" << elapsedTime << std::endl;
-  }
-
-  void doWork6() {
-    const NURBS nurbs = degree6_nurbs_example1(0);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "No cache time\t" << elapsedTime << std::endl;
-  }
-
-  void doWork7() {
-    // Plan: pass in a different configuration and expect different profiling results
-    const NURBS nurbs = degree6_nurbs_example1(1);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Map cache time \t" << elapsedTime << std::endl;
-  }
-
-  void doWork8() {
-    const NURBS nurbs = degree6_nurbs_example1(2);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << __func__ << " " << "Unordered map\t" << elapsedTime << std::endl;
-  }
 
   void nurbs_performance_example() {
     std::cout << "Degree 2 examples are quite fast to calculate basis values" << std::endl;
-    doWork0();
-    doWork1();
-    doWork2();
+    doWork(2, NO_CACHE);
+    doWork(2, MAP_CACHE_SIMPLE);
+    doWork(2, MAP_CACHE_EMPLACE);
+    doWork(2, UNORDERED_MAP_CACHE);
     std::cout << "Degree 4 examples are slower to calculate basis values" << std::endl;
-    doWork3();
-    doWork4();
-    doWork5();
+    doWork(4, NO_CACHE);
+    doWork(4, MAP_CACHE_SIMPLE);
+    doWork(4, MAP_CACHE_EMPLACE);
+    doWork(4, UNORDERED_MAP_CACHE);
     std::cout << "Degree 6 examples take more time to find basis values" << std::endl;
-    doWork6();
-    doWork7();
-    doWork8();
+    doWork(6, NO_CACHE);
+    doWork(6, MAP_CACHE_SIMPLE);
+    doWork(6, MAP_CACHE_EMPLACE);
+    doWork(6, UNORDERED_MAP_CACHE);
   }
 
 }
