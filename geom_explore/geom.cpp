@@ -504,10 +504,10 @@ namespace geom_examples {
   const int NUM_SAMPLES = 50;
   const int NUM_EVALS = 20000;
   void no_cache_message(double t) {
-    std::cout << "  " << "No cache time\t\t" << t << std::endl;
+    std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
   }
   void map_simple_cache_message(double t) {
-    std::cout << "  " << "Simple map cache time\t" << t << std::endl;
+    std::cout << "  " << "Simple map cache time\t\t" << t << std::endl;
   }
   void map_emplace_cache_message(double t) {
     std::cout << "  " << "Emplace map cache time\t" << t << std::endl;
@@ -521,7 +521,6 @@ namespace geom_examples {
       d == 4 ? degree4_nurbs_example1(cacheStrategy) :
       degree6_nurbs_example1(cacheStrategy);
     const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
-    std::cout << "degree 2 ";
 
     if (cacheStrategy == NO_CACHE) {
       no_cache_message(elapsedTime);
