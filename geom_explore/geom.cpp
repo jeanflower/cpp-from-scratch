@@ -498,7 +498,7 @@ namespace geom_examples {
     }
     std::vector<PtCollection> ptsColls;
     PtCollection ptsObj ={
-      .color = 0x00ff00,
+      .color = GREEN,
       .pts = ptsToDisplay,
       .isLine = false
     };

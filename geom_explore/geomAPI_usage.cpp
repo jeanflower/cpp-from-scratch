@@ -20,31 +20,38 @@ namespace geomAPI_examples {
   template <typename PointCollection, typename LineCollection, typename EvalFunc>
   void createOutputFile(
     const PointCollection& ptUvs,
-    const LineCollection& lineUVLists,
+    const LineCollection& isoVLists,
+    const LineCollection& isoULists,
     const EvalFunc& evalSurface
   ) {
+    std::vector<geom_examples::PtCollection> ptsColls;
+
     // build a collection of surface positions
     std::vector<geom_examples::Point> ptsToDisplay(ptUvs.size());
     std::transform(ptUvs.begin(), ptUvs.end(), ptsToDisplay.begin(), evalSurface);
 
-    std::vector<std::vector<geom_examples::Point>> linesToDisplay; 
-    for (const auto uvs : lineUVLists) {
-      std::vector<geom_examples::Point> lineVertices(uvs.size());
-      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
-      linesToDisplay.push_back(lineVertices);
-    }
-
-    std::vector<geom_examples::PtCollection> ptsColls;
     ptsColls.push_back({
-      .color = 0xFF0000, // RED
+      .color = geom_examples::CYAN,
       .pts = ptsToDisplay,
       .isLine = false
     });
 
-    for(auto ptsOnLine: linesToDisplay) {
+    for (const auto uvs : isoVLists) {
+      std::vector<geom_examples::Point> lineVertices(uvs.size());
+      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
       ptsColls.push_back({
-        .color = 0xFFFF00, // YELLOW
-        .pts = ptsOnLine,
+        .color = geom_examples::YELLOW,
+        .pts = lineVertices,
+        .isLine = true
+      });
+    }
+
+    for (const auto uvs : isoULists) {
+      std::vector<geom_examples::Point> lineVertices(uvs.size());
+      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
+      ptsColls.push_back({
+        .color = geom_examples::RED,
+        .pts = lineVertices,
         .isLine = true
       });
     }
@@ -93,7 +100,8 @@ namespace geomAPI_examples {
       );
     }
 
-    std::vector<std::vector<std::pair<double, double>>> lineUVLists;
+    std::vector<std::vector<std::pair<double, double>>> isoVLists;
+    std::vector<std::vector<std::pair<double, double>>> isoULists;
 
     // build uvs for isolines with constant V
     const int MAX_ISO = 8;
@@ -106,7 +114,7 @@ namespace geomAPI_examples {
           -M_PI / 2 + M_PI * lineIndex / MAX_ISO // constant V
         );
       }
-      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      isoVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
     // build uvs for isolines with constant U
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
@@ -119,10 +127,10 @@ namespace geomAPI_examples {
           -M_PI / 2 + M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
-      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      isoULists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    createOutputFile(ptUvs, lineUVLists, evalSphere);
+    createOutputFile(ptUvs, isoVLists, isoULists, evalSphere);
   }
 
     // this is an entry point into this file
@@ -148,7 +156,8 @@ namespace geomAPI_examples {
       );
     }
 
-    std::vector<std::vector<std::pair<double, double>>> lineUVLists;
+    std::vector<std::vector<std::pair<double, double>>> isoVLists;
+    std::vector<std::vector<std::pair<double, double>>> isoULists;
 
     // build uvs for isolines with constant V
     const int MAX_ISO = 8;
@@ -161,7 +170,7 @@ namespace geomAPI_examples {
           2 * M_PI * lineIndex / MAX_ISO // constant V
         );
       }
-      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      isoVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
     // build uvs for isolines with constant U
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
@@ -174,10 +183,10 @@ namespace geomAPI_examples {
           2 * M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
-      lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      isoULists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    createOutputFile(ptUvs, lineUVLists, evalTorus);
+    createOutputFile(ptUvs, isoVLists, isoULists, evalTorus);
   }
 
 }

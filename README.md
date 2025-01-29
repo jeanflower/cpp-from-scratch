@@ -26,8 +26,7 @@ This project provides multiple ways to build and run the code:
 - The Vite web server processes this file and uses it in [`viewer/viewer_plot_data.js`](viewer/viewer_plot_data.js) to render visualizations.
 - Example views 
 
-<img src="images/sphere_view.png" alt="Sphere Screenshot" width="400">
-<img src="images/torus_view.png" alt="Torus Screenshot" width="400">
+<img src="images/geometry_view" alt="Sphere Screenshot" width="400">
 
 ## Content
 
