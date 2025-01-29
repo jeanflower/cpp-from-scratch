@@ -32,6 +32,7 @@ include_directories(${OpenCASCADE_INCLUDE_DIR})
 # Add the include directory for your headers
 include_directories(boost_explore)
 include_directories(std_explore)
+include_directories(geom_explore)
 include_directories(geomAPI_explore)
 
 link_directories(${OpenCASCADE_LIBRARY_DIR})

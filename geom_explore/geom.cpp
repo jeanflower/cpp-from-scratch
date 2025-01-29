@@ -4,27 +4,25 @@
 #include <fstream>
 #include <tuple>
 #include <map>
+#include "geom.hpp"
 
 namespace geom_examples {
   // Define a 3D point structure
-  struct Point {
-    double x, y, z;
-    Point(double x = 0, double y = 0, double z = 0) : x(x), y(y), z(z) {}
-    double X() const {
-      return x;
-    }
-    double Y() const {
-      return y;
-    }
-    double Z() const {
-      return z;
-    }
-  };
+  Point::Point(double x, double y, double z) : x(x), y(y), z(z) {}
 
-  template <typename PtCollection, typename LineCollection>
+  double Point::X() const { return x; }
+  double Point::Y() const { return y; }
+  double Point::Z() const { return z; }
+
+  std::vector<const geom_examples::PtCollection> viewables;
+
+  void addGeometryToView(const std::vector<PtCollection>& ptColls) {
+    for (auto x : ptColls) {
+      viewables.push_back(x);
+    }
+  }
+
   void writeGeometryToJSON(
-    const PtCollection& pts,  // positions for points
-    const LineCollection& polylines // positions for polyline vertices
   ) {
     try {
       // Write this data to a json file for viewing to pick up
@@ -33,37 +31,73 @@ namespace geom_examples {
           std::cerr << "Error opening file for writing.\n";
           return;
       }
+
+      std::vector<PtCollection> nonLineColls;
+      std::vector<PtCollection> isLineColls;
+      std::copy_if(
+        viewables.begin(), 
+        viewables.end(), 
+        std::back_inserter(nonLineColls), 
+        [](const PtCollection& elt) { return !elt.isLine; }
+      );
+      std::copy_if(
+        viewables.begin(), 
+        viewables.end(), 
+        std::back_inserter(isLineColls), 
+        [](const PtCollection& elt) { return elt.isLine; }
+      );
+
       // we'll redirect cout to write to json file
       std::streambuf* coutBuf = std::cout.rdbuf(); // Save the original buffer
 
       std::cout.rdbuf(debugFile.rdbuf());  // Redirect std::cout to the file
-      std::cout << "{\"pts\":[\n";
-      for (size_t i = 0; i < pts.size(); ++i) {
-          const Point& pt = pts[i];
+      std::cout << "{";
+      std::cout << "\"ptsGps\":[\n";
+      for (size_t i = 0; i < nonLineColls.size(); ++i) {
+        auto pts = nonLineColls[i].pts;
+        auto col = nonLineColls[i].color;
+        std::cout << "{";
+        std::cout << "\"color\":" << col << ",\n";
+        std::cout << "\"pts\":[\n";
+        for (size_t j = 0; j < pts.size(); ++j) {
+          const Point& pt = pts[j];
           std::cout 
             << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-          if (i != pts.size() - 1) {
+          if (j != pts.size() - 1) {
             std::cout << ",";
           }
           std::cout << "\n"; // new point on a new line of the json file
-      }
-      std::cout << "],\n\"polylines\":[\n";
-
-      for (size_t polyLineIndex = 0; polyLineIndex < polylines.size(); ++polyLineIndex) {
-        std::cout << "[\n";
-        const auto polyLine = polylines[polyLineIndex];
-        for (size_t segIndex = 0; segIndex < polyLine.size(); ++segIndex) {
-
-            const Point& pt = polyLine[segIndex];
-            std::cout 
-              << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-            if (segIndex != polyLine.size() - 1) {
-              std::cout << ",";
-            }
-            std::cout << "\n"; // new point on a new line of the json file
         }
-        std::cout << "]";
-        if (polyLineIndex != polylines.size() - 1) {
+        std::cout << "]\n"; // end of array of points
+        std::cout << "}\n";  // end of pts object
+        if (i != nonLineColls.size() - 1) {
+          std::cout << ",";
+        }
+      }
+      std::cout << "],\n"; // end of array of pts objects
+      std::cout << "\"linesObjs\":[\n";
+
+      for (size_t polyLineIndex = 0; polyLineIndex < isLineColls.size(); ++polyLineIndex) {
+        auto lineColl = isLineColls[polyLineIndex];
+        auto col = lineColl.color;
+        auto vxs = lineColl.pts;
+        std::cout << "{";
+        std::cout << "\"color\":" << col << ",\n";
+        std::cout << "\"vxs\":";
+        std::cout << "[\n";
+        for (size_t segIndex = 0; segIndex < vxs.size(); ++segIndex) {
+          const Point& pt = vxs[segIndex];
+          std::cout 
+            << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
+          if (segIndex != vxs.size() - 1) {
+            std::cout << ",";
+          }
+          std::cout << "\n"; // new point on a new line of the json file
+        }
+        std::cout << "]\n"; // end of vxs array
+        std::cout << "}\n"; // end of polyLine object
+
+        if (polyLineIndex != isLineColls.size() - 1) {
           std::cout << ",";
         }
         std::cout << "\n";
@@ -462,8 +496,14 @@ namespace geom_examples {
       // std::cout << t << ", " 
       // << result.x << ", " << result.y << ", " << result.z << std::endl;
     }
-    std::vector<std::vector<Point>> linesToDisplay;
-    writeGeometryToJSON(ptsToDisplay, linesToDisplay);
+    std::vector<PtCollection> ptsColls;
+    PtCollection ptsObj ={
+      .color = 0x00ff00,
+      .pts = ptsToDisplay,
+      .isLine = false
+    };
+    ptsColls.push_back(ptsObj);
+    addGeometryToView(ptsColls);
   }
 
   double doConfiguredWork(
@@ -501,8 +541,8 @@ namespace geom_examples {
     return elapsedTime;
   }
 
-  const int NUM_SAMPLES = 50;
-  const int NUM_EVALS = 20000;
+  //const int NUM_EVALS = 20000;
+  const int NUM_EVALS = 5;
   void no_cache_message(double t) {
     std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
   }

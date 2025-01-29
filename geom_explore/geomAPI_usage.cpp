@@ -17,27 +17,39 @@ namespace geomAPI_examples {
     return stream.str();  // Return the formatted value as a string
   }
 
-
-  // instead of spelling out (and fixing) the types here, use a template
-  // and let the compiler work out how to map the types
-  template <typename PtCollection, typename LineCollection, typename EvalFunc>
+  template <typename PointCollection, typename LineCollection, typename EvalFunc>
   void createOutputFile(
-    const PtCollection& ptUvs,
+    const PointCollection& ptUvs,
     const LineCollection& lineUVLists,
     const EvalFunc& evalSurface
   ) {
     // build a collection of surface positions
-    std::vector<geom_examples::Point> pts(ptUvs.size());
-    std::transform(ptUvs.begin(), ptUvs.end(), pts.begin(), evalSurface);
+    std::vector<geom_examples::Point> ptsToDisplay(ptUvs.size());
+    std::transform(ptUvs.begin(), ptUvs.end(), ptsToDisplay.begin(), evalSurface);
 
-    std::vector<std::vector<geom_examples::Point>> lineVxsVector; 
+    std::vector<std::vector<geom_examples::Point>> linesToDisplay; 
     for (const auto uvs : lineUVLists) {
       std::vector<geom_examples::Point> lineVertices(uvs.size());
       std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
-      lineVxsVector.push_back(lineVertices);
+      linesToDisplay.push_back(lineVertices);
     }
 
-    geom_examples::writeGeometryToJSON(pts, lineVxsVector);
+    std::vector<geom_examples::PtCollection> ptsColls;
+    ptsColls.push_back({
+      .color = 0xFF0000, // RED
+      .pts = ptsToDisplay,
+      .isLine = false
+    });
+
+    for(auto ptsOnLine: linesToDisplay) {
+      ptsColls.push_back({
+        .color = 0xFFFF00, // YELLOW
+        .pts = ptsOnLine,
+        .isLine = true
+      });
+    }
+
+    geom_examples::addGeometryToView(ptsColls);  
   }
 
   // this is an entry point into this file
@@ -72,14 +84,12 @@ namespace geomAPI_examples {
     of objects in standard C++ code.
     */
 
-    const int NUM_SAMPLES = 5000;
-
     // select some uvs on the surface
-    std::array<std::pair<double, double>, NUM_SAMPLES> ptUvs;
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> ptUvs;
+    for (int i = 0; i < geom_examples::NUM_SAMPLES; i++) {
       ptUvs[i] = std::make_pair(
-        0.0 +       5 * 2 * M_PI * i / NUM_SAMPLES,  // winding around the sphere
-        M_PI / 10 + 8 * 2 * M_PI * i / NUM_SAMPLES   // like a LissaJous curve
+        0.0 +       5 * 2 * M_PI * i / geom_examples::NUM_SAMPLES,  // winding around the sphere
+        M_PI / 10 + 8 * 2 * M_PI * i / geom_examples::NUM_SAMPLES   // like a LissaJous curve
       );
     }
 
@@ -89,10 +99,10 @@ namespace geomAPI_examples {
     const int MAX_ISO = 8;
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
-      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
-      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+      std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
-          2 * M_PI * i / NUM_SAMPLES, // winding around the sphere
+          2 * M_PI * i / geom_examples::NUM_SAMPLES, // winding around the sphere
           -M_PI / 2 + M_PI * lineIndex / MAX_ISO // constant V
         );
       }
@@ -100,13 +110,13 @@ namespace geomAPI_examples {
     }
     // build uvs for isolines with constant U
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
-      std::array<gp_Pnt, NUM_SAMPLES + 1> lineVertices;
+      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> lineVertices;
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
-      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
-      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+      std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
           2 * M_PI * lineIndex / MAX_ISO, // constant U
-          -M_PI / 2 + M_PI * i / NUM_SAMPLES // winding around the sphere
+          -M_PI / 2 + M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
       lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
@@ -129,14 +139,12 @@ namespace geomAPI_examples {
       return geom_examples::Point(p.X(), p.Y(), p.Z());
     };
 
-    const int NUM_SAMPLES = 5000;
-
     // select some uvs on the surface
-    std::array<std::pair<double, double>, NUM_SAMPLES> ptUvs;
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> ptUvs;
+    for (int i = 0; i < geom_examples::NUM_SAMPLES; i++) {
       ptUvs[i] = std::make_pair(
-        0.0 +       5 * 2 * M_PI * i / NUM_SAMPLES,  // winding around the sphere
-        M_PI / 10 + 8 * 2 * M_PI * i / NUM_SAMPLES   // like a LissaJous curve
+        0.0 +       5 * 2 * M_PI * i / geom_examples::NUM_SAMPLES,  // winding around the sphere
+        M_PI / 10 + 8 * 2 * M_PI * i / geom_examples::NUM_SAMPLES   // like a LissaJous curve
       );
     }
 
@@ -146,10 +154,10 @@ namespace geomAPI_examples {
     const int MAX_ISO = 8;
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
-      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
-      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+      std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
-          2 * M_PI * i / NUM_SAMPLES, // winding around the sphere
+          2 * M_PI * i / geom_examples::NUM_SAMPLES, // winding around the sphere
           2 * M_PI * lineIndex / MAX_ISO // constant V
         );
       }
@@ -157,13 +165,13 @@ namespace geomAPI_examples {
     }
     // build uvs for isolines with constant U
     for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
-      std::array<gp_Pnt, NUM_SAMPLES + 1> lineVertices;
+      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> lineVertices;
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
-      std::array<std::pair<double, double>, NUM_SAMPLES + 1> uvs;
-      for (int i = 0; i < NUM_SAMPLES + 1; i++) {
+      std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
+      for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
           2 * M_PI * lineIndex / MAX_ISO, // constant U
-          2 * M_PI * i / NUM_SAMPLES // winding around the sphere
+          2 * M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
       lineUVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));

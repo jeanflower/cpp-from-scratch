@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace geom_examples {
 
   struct Point {
@@ -14,11 +16,18 @@ namespace geom_examples {
     double Z() const;
   };
 
-  template <typename PtCollection, typename LineCollection>
-  void writeGeometryToJSON(
-    const PtCollection& pts,  // positions for points
-    const LineCollection& polylines // positions for polyline vertices
-  );
+  struct PtCollection {
+    std::vector<Point> pts;
+    int color;
+    bool isLine;
+  };
+
+  const int NUM_SAMPLES = 5000;
+  //const int NUM_SAMPLES = 5;
+
+  void addGeometryToView(const std::vector<PtCollection>& ptColls);
+
+  void writeGeometryToJSON();
 
   // build a nurbs curve and evaluate it
   void nurbs_example();

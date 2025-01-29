@@ -4,20 +4,30 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 // This threejs file extracts data from a file output/view_data.json
 // It expects to find this json structure
 // {
-//   "pts": [
-//     {"x": 0, "y": 0, "z": 0},
-//     {"x": 1, "y": 1, "z": 1},
-//     ... // add more points here
-//   ], // end of points array
-//   "polylines": [
-//     [ // multiple polylines can be included
-//       {"x": 0, "y": 0, "z": 0}, // start of first line segment
-//       {"x": 1, "y": 1, "z": 1}, // end of first line segment and start of second
-//       ...
-//                                 // for closed lines, first and last point should match
-//     ],
-//     ... // add more polylines here
-//   ] // end of polylines array
+//   "ptsGps": [
+//     {
+//     "color": "0x00ff00",
+//     "pts": [
+//       {"x": 0, "y": 0, "z": 0},
+//       {"x": 1, "y": 1, "z": 1},
+//       ... // add more points here
+//     ], // end of points array
+//     }, // end of ptsGp object
+//     ... // add more ptsGps here
+//   ], // end of ptsGps array
+//   "linesObjs": [// multiple polylines can be included
+//     {
+//       "color": "0x00ff00",
+//       "vxs": 
+//         [ 
+//           {"x": 0, "y": 0, "z": 0}, // start of first line segment
+//           {"x": 1, "y": 1, "z": 1}, // end of first line segment and start of second
+//           ...
+//                                   // for closed lines, first and last point should match
+//         ],
+//     }
+//     ... // add more lineObjs here
+//   ] // end of lineObjs array
 // }
 // The data is used to create points and polylines in the scene.
 
@@ -41,40 +51,43 @@ fetch("output/view_data.json")
     )
     .then(data => {
 
-        const addPointsToScene = (triples) => {
-          if (!triples) {
-            return;
-          }
+        // how to display a given ptsObj (which contains pts data and color)
+        const addPointsToScene = (ptsObj) => {
+          console.log('processing a ptsObj');
           // Create a geometry to hold points
           const geometry = new THREE.BufferGeometry();
           // make a flattened map of the coordinates
-          const points = new Float32Array(triples.flatMap(d => [d.x, d.y, d.z]));
+          const points = new Float32Array(ptsObj.pts.flatMap(d => [d.x, d.y, d.z]));
           // console.log(`point data is ${points}`);
           geometry.setAttribute("position", new THREE.BufferAttribute(points, 3));
           // Create a material for the points
-          const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.03 }); // TODO get colour from JSON
+          const material = new THREE.PointsMaterial({ color: parseInt(ptsObj.color, 16), size: 0.05 });
           const pointCloud = new THREE.Points(geometry, material);
           // Add the points to the scene
           scene.add(pointCloud);
         }
-        addPointsToScene(data.pts);
 
-        const addPolylineToScene = (triples) => { // TODO refactor to share code with addPointsToScene
+        // for each ptsOj, display it
+        data.ptsGps.map(addPointsToScene);
+
+        // how to display a given linesObj (which contains vxs data and color)
+        const addPolylineToScene = (linesObj) => { // TODO refactor to share code with addPointsToScene
           // Create a geometry to hold line segment vertices
           const geometry = new THREE.BufferGeometry();
           // Create a flattened array of vertex coordinates for the line segments
-          const vertices = new Float32Array(triples.flatMap(d => [d.x, d.y, d.z]));
+          const vertices = new Float32Array(linesObj.vxs.flatMap(d => [d.x, d.y, d.z]));
           // console.log(`polyline data is ${vertices}`);
           geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
       
           // Create a material for the line segments
-          const material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });  // TODO get colour from JSON
+          const material = new THREE.LineBasicMaterial({ color: parseInt(linesObj.color, 16), linewidth: 3 });
       
           // Create the line segments and add them to the scene
           const lineSegments = new THREE.Line(geometry, material);
           scene.add(lineSegments);
         };
-        data.polylines.map(addPolylineToScene);
+        // for each linesObj, display it
+        data.linesObjs.map(addPolylineToScene);
 
         // Animate the scene
         animate();

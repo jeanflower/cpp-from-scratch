@@ -10,11 +10,13 @@ int main() {
     //std_data_types::ptr_example();
     //std_data_types::collections_example();
     
-    //geomAPI_examples::sphere_example();
-    //geomAPI_examples::torus_example();
+    geomAPI_examples::sphere_example();
+    geomAPI_examples::torus_example();
 
     //geom_examples::nurbs_example();
-    geom_examples::nurbs_performance_example();
+    //geom_examples::nurbs_performance_example();
+
+    geom_examples::writeGeometryToJSON();
 
     return 0;
 }
