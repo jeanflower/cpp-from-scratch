@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <vector>
 #include <list>
 
 namespace std_data_types {
