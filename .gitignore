@@ -6,6 +6,9 @@
 /output/
 */output/
 
+# I put gcp library source here for functions-framework-cpp
+/dependencies/
+
 # Ignore CMake files
 CMakeCache.txt
 CMakeFiles/
@@ -50,3 +53,4 @@ lib/
 # Ignore viewer packages
 /viewer/node_modules
 /viewer/public/output
+

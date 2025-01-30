@@ -30,23 +30,23 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OpenCASCADE_INCLUDE_DIR})
 
 # Add the include directory for your headers
-include_directories(boost_explore)
-include_directories(std_explore)
-include_directories(geom_explore)
-include_directories(geomAPI_explore)
+include_directories(../../boost_explore)
+include_directories(../../std_explore)
+include_directories(../../geom_explore)
+include_directories(../../geomAPI_explore)
 
 link_directories(${OpenCASCADE_LIBRARY_DIR})
 
 # Add the source files
-add_library(boost_explore_lib boost_explore/boost_usage.cpp)
-add_library(std_explore_lib std_explore/std_usage.cpp)
-add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
-add_library(geom_lib geom_explore/geom.cpp)
+add_library(boost_explore_lib ../../boost_explore/boost_usage.cpp)
+add_library(std_explore_lib ../../std_explore/std_usage.cpp)
+add_library(geomAPI_lib ../../geom_explore/geomAPI_usage.cpp)
+add_library(geom_lib ../../geom_explore/geom.cpp)
 
 # Add executable target (your main file)
-add_executable(main main.cpp)
+add_executable(main ../../main.cpp)
 # Add a test executable (your test file)
-add_executable(test_main test_main.cpp)
+add_executable(test_main ../../test_main.cpp)
 
 # Link external libraries to main
 target_link_libraries(main 

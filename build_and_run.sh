@@ -1,6 +1,6 @@
 #!/bin/bash
 cd build
-cmake ..
+cmake ../cmake/local
 cmake --build .
 cd ..
 
