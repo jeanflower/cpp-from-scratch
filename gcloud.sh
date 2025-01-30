@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e # exit if a command returns a non-zero exit status
+
 PROJECT_ID="cpp-project-449415"
 PROJECT_NUMBER=236401783700
 

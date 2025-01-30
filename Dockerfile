@@ -35,9 +35,11 @@ WORKDIR /v/source
 # a statically linked C++ program
 RUN cmake -S/v/source -B/v/binary -GNinja \
     -DCMAKE_TOOLCHAIN_FILE=/usr/local/vcpkg/scripts/buildsystems/vcpkg.cmake \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_CLOUD=ON
 
 # Compile the binary and strip it to reduce its size.
+
 RUN cmake --build /v/binary
 RUN strip /v/binary/cloud_run_hello
 
