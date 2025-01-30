@@ -451,9 +451,7 @@ namespace geom_examples {
     return nurbs;
   }
 
-  void nurbs_example(
-    bool useCache = false
-  ) {
+  void nurbs_example() {
 
     /*
     // check for read out of bounds
@@ -464,7 +462,7 @@ namespace geom_examples {
     };
     std::cout << "weights[3] = " << weights[3] << std::endl;
     */
-   const NURBS nurbs = degree2_nurbs_example1(useCache);
+   const NURBS nurbs = degree2_nurbs_example1(NO_CACHE);
 
     /*
     // Basis functions should sum to 1
@@ -508,7 +506,7 @@ namespace geom_examples {
 
   double doConfiguredWork(
     const NURBS& nurbs,
-    const int numSamples, 
+    const int numParamValsPossible, 
     const int numEvals
   ) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -521,14 +519,14 @@ namespace geom_examples {
     std::vector<double> paramValues;
 
     // build a collection of parameter values which we will evaluate
-    for (int i = 0; i < numSamples; i++) {
-      const double t = startParam + i * (endParam - startParam) / (numSamples - 1);
+    for (int i = 0; i < numParamValsPossible; i++) {
+      const double t = startParam + i * (endParam - startParam) / (numParamValsPossible - 1);
       paramValues.push_back(t);
     }
 
     for (int i = 0; i < numEvals; i++) {
       // do a random evaluation
-      const double t = paramValues[static_cast<int>(static_cast<double>(rand()) / RAND_MAX * numSamples)];
+      const double t = paramValues[static_cast<int>(static_cast<double>(rand()) / RAND_MAX * numParamValsPossible)];
       const Point& result = nurbs.evaluate(t);
 
       // Prevent result from being optimized away
@@ -541,8 +539,6 @@ namespace geom_examples {
     return elapsedTime;
   }
 
-  //const int NUM_EVALS = 20000;
-  const int NUM_EVALS = 5;
   void no_cache_message(double t) {
     std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
   }
@@ -560,7 +556,18 @@ namespace geom_examples {
       d == 2 ? degree2_nurbs_example1(cacheStrategy) :
       d == 4 ? degree4_nurbs_example1(cacheStrategy) :
       degree6_nurbs_example1(cacheStrategy);
-    const double elapsedTime = doConfiguredWork(nurbs, NUM_SAMPLES, NUM_EVALS);
+
+    // a big number of evaluations
+    //  - uses the cache more
+    //  - reduces the effect of noise in the performance measures
+    const int numEvaluationsForPerf = 20000;
+
+    // a limited number of possible parameter values
+    //  - uses the cache more
+    //  - controls the size of the cache
+    //  - makes the test less realistic for some solving scenarios
+    const int numParamValsPossible = 1000;
+    const double elapsedTime = doConfiguredWork(nurbs, numParamValsPossible, numEvaluationsForPerf);
 
     if (cacheStrategy == NO_CACHE) {
       no_cache_message(elapsedTime);
