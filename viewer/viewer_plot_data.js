@@ -35,7 +35,19 @@ import { MeshLine, MeshLineMaterial } from "three.meshline";
 
 // Set up the scene, camera, and renderer
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+const aspect = window.innerWidth / window.innerHeight;
+const frustumSize = 10; // Controls how much of the scene is visible
+
+const camera = new THREE.OrthographicCamera(
+  -frustumSize * aspect,  // Left
+   frustumSize * aspect,  // Right
+   frustumSize,           // Top
+  -frustumSize,           // Bottom
+   0.1,                   // Near
+   1000                   // Far
+);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -74,19 +86,33 @@ function fitCameraToScene() {
 
   // Determine the camera distance required
   const maxDim = Math.max(size.x, size.y, size.z);
-  const fov = THREE.MathUtils.degToRad(camera.fov);
-  const cameraDistance = maxDim / (2 * Math.tan(fov / 2));
+  const aspect = window.innerWidth / window.innerHeight;
 
   if (camera.isPerspectiveCamera) {
-      camera.position.set(center.x, center.y, center.z + cameraDistance * 1.5);
-  } else if (camera.isOrthographicCamera) {
-      camera.left = -size.x / 2;
-      camera.right = size.x / 2;
-      camera.top = size.y / 2;
-      camera.bottom = -size.y / 2;
-      camera.near = -size.z;
-      camera.far = size.z * 2;
-      camera.updateProjectionMatrix();
+    const fov = THREE.MathUtils.degToRad(camera.fov);
+    const cameraDistance = maxDim / (2 * Math.tan(fov / 2));
+    camera.position.set(center.x, center.y, center.z + cameraDistance * 1.5);
+  } 
+  else if (camera.isOrthographicCamera) {
+    const frustumSize = maxDim * 1.1; // Adjust scale factor to fit scene well
+    
+    if (aspect >= 1) {
+      // Wide screen: X-axis is wider
+      camera.left = -frustumSize * aspect / 2;
+      camera.right = frustumSize * aspect / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = -frustumSize / 2;
+    } else {
+      // Tall screen: Y-axis is taller
+      camera.left = -frustumSize / 2;
+      camera.right = frustumSize / 2;
+      camera.top = (frustumSize / aspect) / 2;
+      camera.bottom = -(frustumSize / aspect) / 2;
+    }
+
+    camera.near = -maxDim * 2;
+    camera.far = maxDim * 2;
+    camera.updateProjectionMatrix();
   }
 
   camera.lookAt(center);
@@ -101,8 +127,76 @@ fetch("output/view_data.json")
     )
     .then(data => {
 
-        // how to display a given ptsObj (which contains pts data and color)
-        const addPointsToScene = (ptsObj) => {
+        let minX, minY, minZ, maxX, maxY, maxZ;
+        data.ptsGps.map((ptsObj) => {
+          ptsObj.pts.map((d) => {
+            if (minX === undefined) {
+              minX = d.x;
+              minY = d.y;
+              minZ = d.z;
+              maxX = d.x;
+              maxY = d.y;
+              maxZ = d.z;
+              return;
+            }
+            if (d.x < minX) {
+              minX = d.x;
+            }
+            if (d.y < minY) {
+              minY = d.z;
+            }
+            if (d.z < minZ) {
+              minZ = d.y;
+            }
+            if (d.x > maxX) {
+              maxX = d.x;
+            }
+            if (d.y > maxY) {
+              maxY = d.z;
+            }
+            if (d.z > maxZ) {
+              maxZ = d.y;
+            }
+          })
+        });
+        data.linesObjs.map((linesObj) => {
+          linesObj.vxs.map((d) => {
+            if (minX === undefined) {
+              minX = d.x;
+              minY = d.y;
+              minZ = d.z;
+              maxX = d.x;
+              maxY = d.y;
+              maxZ = d.z;
+              return;
+            }
+            if (d.x < minX) {
+              minX = d.x;
+            }
+            if (d.y < minY) {
+              minY = d.z;
+            }
+            if (d.z < minZ) {
+              minZ = d.y;
+            }
+            if (d.x > maxX) {
+              maxX = d.x;
+            }
+            if (d.y > maxY) {
+              maxY = d.z;
+            }
+            if (d.z > maxZ) {
+              maxZ = d.y;
+            }
+          })
+        });
+
+        const biggestDim = Math.max(maxX - minX, Math.max(maxY - minY, maxZ - minZ));
+        const displaySize = biggestDim / 700;
+        // console.log(`displaySize = ${displaySize}`);
+
+        // display a ptsObj (which contains pts data and color)
+        data.ptsGps.map((ptsObj) => {
           console.log('processing a ptsObj');
           const col = ptsObj.color;
           // console.log(`col = ${col}`);
@@ -116,36 +210,31 @@ fetch("output/view_data.json")
           // Create a material for the points
           const material = new THREE.PointsMaterial({ 
             color: col, 
-            size: 0.1
+            size: displaySize
           });
           const pointCloud = new THREE.Points(geometry, material);
           // Add the points to the scene
           scene.add(pointCloud);
-        }
+        });
 
-        // for each ptsOj, display it
-        data.ptsGps.map(addPointsToScene);
-
-        // how to display a given linesObj (which contains vxs data and color)
-        const addPolylineToScene = (linesObj) => { // TODO refactor to share code with addPointsToScene
+        // display a linesObj (which contains vxs data and color)
+        data.linesObjs.map((linesObj) => {
           // Create a geometry to hold line segment vertices
           const geometry = new THREE.BufferGeometry();
           // Create a flattened array of vertex coordinates for the line segments
           const vertices = new Float32Array(linesObj.vxs.flatMap(d => [d.x, d.y, d.z]));
 
           const line = new MeshLine();
-          line.setPoints(vertices); // Example points
+          line.setPoints(vertices);
 
           const material = new MeshLineMaterial({
             color: new THREE.Color(linesObj.color),
-            lineWidth: 0.05,  // Works properly
+            lineWidth: displaySize,
           });
 
           const mesh = new THREE.Mesh(line, material);
           scene.add(mesh);
-        };
-        // for each linesObj, display it
-        data.linesObjs.map(addPolylineToScene);
+        });
 
         fitCameraToScene();
 
