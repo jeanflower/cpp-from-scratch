@@ -6,8 +6,12 @@ cd build
 echo "Clean the build directory (remove all files in the directory)"
 rm -rf *
 
+cd ..
+
 echo "Run cmake and build the project"
-cmake ..
-cmake --build .
+
+cmake -S . -B build
+cmake -B build -DUSE_CLOUD=OFF
+cmake --build build
 
 echo "Finished cmake build"

@@ -2,6 +2,8 @@
 #include "std_explore/std_usage.hpp"
 #include "geom_explore/geomAPI_usage.hpp"
 #include "geom_explore/geom.hpp"
+#include <iostream>
+#include <string>
 
 int main() {
     //boost_data_types::optional_example();
@@ -14,7 +16,8 @@ int main() {
     geomAPI_examples::torus_example();
 
     //geom_examples::nurbs_example();
-    //geom_examples::nurbs_performance_example();
+    const std::string message = geom_examples::nurbs_performance_example();
+    //std::cout << message;
 
     geom_examples::writeGeometryToJSON();
 

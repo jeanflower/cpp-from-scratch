@@ -3,6 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <list>
+#include <cstdint>
 
 namespace std_data_types {
 

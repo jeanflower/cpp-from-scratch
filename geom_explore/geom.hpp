@@ -1,6 +1,8 @@
 #pragma once
 
+#include <string>
 #include <vector>
+#include <cstdint>
 
 namespace geom_examples {
 
@@ -17,8 +19,8 @@ namespace geom_examples {
   };
 
   struct PtCollection {
-    std::vector<Point> pts;
     int color;
+    std::vector<Point> pts;
     bool isLine;
   };
 
@@ -40,5 +42,5 @@ namespace geom_examples {
   void nurbs_example();
 
   // build a nurbs curve, do evaluations and add up the time taken
-  void nurbs_performance_example();
+  std::string nurbs_performance_example();
 }

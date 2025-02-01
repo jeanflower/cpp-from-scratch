@@ -4,6 +4,9 @@
 #include <fstream>
 #include <tuple>
 #include <map>
+#include <unordered_map>
+#include <algorithm>
+#include <chrono>
 #include "geom.hpp"
 
 namespace geom_examples {
@@ -14,7 +17,7 @@ namespace geom_examples {
   double Point::Y() const { return y; }
   double Point::Z() const { return z; }
 
-  std::vector<const geom_examples::PtCollection> viewables;
+  std::vector<geom_examples::PtCollection> viewables;
 
   void addGeometryToView(const std::vector<PtCollection>& ptColls) {
     for (auto x : ptColls) {
@@ -539,19 +542,19 @@ namespace geom_examples {
     return elapsedTime;
   }
 
-  void no_cache_message(double t) {
-    std::cout << "  " << "No cache time\t\t\t" << t << std::endl;
+  std::string no_cache_message(double t) {
+    return "  No cache time            " + std::to_string(t) + "\n";
   }
-  void map_simple_cache_message(double t) {
-    std::cout << "  " << "Simple map cache time\t\t" << t << std::endl;
+  std::string map_simple_cache_message(double t) {
+    return "  Simple map cache time    " + std::to_string(t) + "\n";
   }
-  void map_emplace_cache_message(double t) {
-    std::cout << "  " << "Emplace map cache time\t" << t << std::endl;
+  std::string map_emplace_cache_message(double t) {
+    return "  Emplace map cache time   " + std::to_string(t) + "\n";
   }
-  void unordered_map_cache_message(double t) {
-    std::cout << "  " << "Unordered map cache time\t" << t << std::endl;
+  std::string unordered_map_cache_message(double t) {
+    return "  Unordered map cache time " + std::to_string(t) + "\n";
   }
-  void doWork(int d, int cacheStrategy) {
+  std::string doWork(int d, int cacheStrategy) {
     const NURBS nurbs = 
       d == 2 ? degree2_nurbs_example1(cacheStrategy) :
       d == 4 ? degree4_nurbs_example1(cacheStrategy) :
@@ -569,34 +572,47 @@ namespace geom_examples {
     const int numParamValsPossible = 1000;
     const double elapsedTime = doConfiguredWork(nurbs, numParamValsPossible, numEvaluationsForPerf);
 
+    std::string result = "";
     if (cacheStrategy == NO_CACHE) {
-      no_cache_message(elapsedTime);
+      result += no_cache_message(elapsedTime);
     } else if (cacheStrategy == MAP_CACHE_SIMPLE) {
-      map_simple_cache_message(elapsedTime);
+      result += map_simple_cache_message(elapsedTime);
     } else if (cacheStrategy == MAP_CACHE_EMPLACE) {
-      map_emplace_cache_message(elapsedTime);
+      result += map_emplace_cache_message(elapsedTime);
     } else if (cacheStrategy == UNORDERED_MAP_CACHE) {
-      unordered_map_cache_message(elapsedTime);
+      result +=  unordered_map_cache_message(elapsedTime);
     }
+    std::cout << result;
+    return result;
   }
 
 
-  void nurbs_performance_example() {
-    std::cout << "Degree 2 examples are quite fast to calculate basis values" << std::endl;
-    doWork(2, NO_CACHE);
-    doWork(2, MAP_CACHE_SIMPLE);
-    doWork(2, MAP_CACHE_EMPLACE);
-    doWork(2, UNORDERED_MAP_CACHE);
-    std::cout << "Degree 4 examples are slower to calculate basis values" << std::endl;
-    doWork(4, NO_CACHE);
-    doWork(4, MAP_CACHE_SIMPLE);
-    doWork(4, MAP_CACHE_EMPLACE);
-    doWork(4, UNORDERED_MAP_CACHE);
-    std::cout << "Degree 6 examples take more time to find basis values" << std::endl;
-    doWork(6, NO_CACHE);
-    doWork(6, MAP_CACHE_SIMPLE);
-    doWork(6, MAP_CACHE_EMPLACE);
-    doWork(6, UNORDERED_MAP_CACHE);
+  std::string nurbs_performance_example() {
+
+    std::string result = "";
+    std::string heading = "Degree 2 examples are quite fast to calculate basis values\n";
+    std::cout << heading;
+    result += heading;
+    result += " " + doWork(2, NO_CACHE);
+    result += " " + doWork(2, MAP_CACHE_SIMPLE);
+    result += " " + doWork(2, MAP_CACHE_EMPLACE);
+    result += " " + doWork(2, UNORDERED_MAP_CACHE);
+    heading = "Degree 4 examples are slower to calculate basis values\n";
+    std::cout << heading;
+    result += heading;
+    result += " " + doWork(4, NO_CACHE);
+    result += " " + doWork(4, MAP_CACHE_SIMPLE);
+    result += " " + doWork(4, MAP_CACHE_EMPLACE);
+    result += " " + doWork(4, UNORDERED_MAP_CACHE);
+    heading = "Degree 6 examples take more time to find basis values\n";
+    std::cout << heading;
+    result += heading;
+    result += " " + doWork(6, NO_CACHE);
+    result += " " + doWork(6, MAP_CACHE_SIMPLE);
+    result += " " + doWork(6, MAP_CACHE_EMPLACE);
+    result += " " + doWork(6, UNORDERED_MAP_CACHE);
+
+    return result;
   }
 
 }

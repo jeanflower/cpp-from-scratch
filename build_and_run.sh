@@ -1,10 +1,7 @@
 #!/bin/bash
-cd build
-cmake -S .. -B build_local
-cmake -B build_local -DUSE_CLOUD=OFF
-cmake --build build_local
-
-cd ..
+cmake -S . -B build
+cmake -B build -DUSE_CLOUD=OFF
+cmake --build build
 
 ./build/main
 touch ./viewer/viewer.html

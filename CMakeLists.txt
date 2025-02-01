@@ -2,7 +2,8 @@
 # https://cloud.google.com/run/docs/quickstarts/build-and-deploy/deploy-c-plus-plus-service?hl=en
 cmake_minimum_required(VERSION 3.20)
 
-project(cpp-samples-cloud-run-hello-world CXX)
+# Project name and version
+project(MyProject VERSION 1.0)
 
 option(USE_CLOUD "Build for cloud" OFF)
 
@@ -11,9 +12,16 @@ if(USE_CLOUD)
     find_package(functions_framework_cpp REQUIRED)
     find_package(Threads)
     
+    include_directories(geom_explore)
+
+    add_library(geom_lib geom_explore/geom.cpp)
+
     add_executable(cloud_run_hello cloud_run_hello.cc)
     target_compile_features(cloud_run_hello PRIVATE cxx_std_17)
-    target_link_libraries(cloud_run_hello functions-framework-cpp::framework)
+    target_link_libraries(cloud_run_hello 
+      functions-framework-cpp::framework
+      geom_lib
+    )
     
     include(GNUInstallDirs)
     install(TARGETS cloud_run_hello RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -25,8 +33,6 @@ else()
     cmake_policy(SET CMP0144 NEW)
     cmake_policy(SET CMP0167 NEW)
     
-    # Project name and version
-    project(MyProject VERSION 1.0)
     # Set the C++ standard
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_BUILD_TYPE Debug)
