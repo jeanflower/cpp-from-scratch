@@ -62,6 +62,7 @@ else()
     include_directories(std_explore)
     include_directories(geom_explore)
     include_directories(geomAPI_explore)
+    include_directories(nr_explore)
     
     link_directories(${OpenCASCADE_LIBRARY_DIR})
     
@@ -70,6 +71,7 @@ else()
     add_library(std_explore_lib std_explore/std_usage.cpp)
     add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
     add_library(geom_lib geom_explore/geom.cpp)
+    add_library(nr_lib nr_explore/gaussj.cpp)
     
     # Add executable target (your main file)
     add_executable(main main.cpp)
@@ -84,6 +86,7 @@ else()
                 std_explore_lib
                 geomAPI_lib
                 geom_lib
+                nr_lib
     )
     
     target_link_libraries(test_main Catch2::Catch2WithMain)

@@ -31,10 +31,11 @@ This project provides multiple ways to build and run the code:
 ## Content
 
 - The main entry point of the project is [`main.cpp`](main.cpp).
-- The project explores three key areas of lower-level code:
+- The project explores key areas of lower-level code:
   1. [`std_explore`](std_explore): Examples using standard library classes, focusing on performance comparisons of standard collections.
   2. [`boost_explore`](boost_explore): Examples using Boost classes, with emphasis on the `optional` class.
-  3. [`geom_explore`](geom_explore): Examples using OpenCascade for geometric operations.
+  3. [`geom_explore`](geom_explore): Examples using NURBS or OpenCascade for geometric operations.
+  4. [`nr_explore`](nr_explore): Examples from nuerical recipres.
 
 ## Profiling
 

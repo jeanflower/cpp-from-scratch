@@ -29,7 +29,7 @@ namespace std_data_types {
   }
 
 
-void string_example() {
+  void string_example() {
     std::string str = "Standard C++ Libraries";
 
     // Convert to lowercase
