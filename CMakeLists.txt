@@ -89,7 +89,16 @@ else()
                 nr_lib
     )
     
-    target_link_libraries(test_main Catch2::Catch2WithMain)
+    target_link_libraries(test_main 
+      PRIVATE Catch2::Catch2WithMain
+                ${Boost_LIBRARIES} 
+                TKernel TKMath TKGeomBase TKGeomAlgo
+                boost_explore_lib 
+                std_explore_lib
+                geomAPI_lib
+                geom_lib
+                nr_lib
+    )
     
     # Enable testing
     enable_testing()

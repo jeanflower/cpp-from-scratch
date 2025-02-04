@@ -7,7 +7,7 @@
 
 namespace std_data_types {
 
-  void ptr_example() {
+  void ptrExample() {
 
     // for testing leak detection
     //const int* leaking_ptr = new int(10);
@@ -29,7 +29,7 @@ namespace std_data_types {
   }
 
 
-  void string_example() {
+  void stringExample() {
     std::string str = "Standard C++ Libraries";
 
     // Convert to lowercase
@@ -43,7 +43,7 @@ namespace std_data_types {
     }
   }
 
-  void collections_example() {
+  void collectionsExample() {
     /*
     When to Use Which Collection:
 
@@ -71,7 +71,7 @@ namespace std_data_types {
     Use when the collection size is known at compile time and you want the performance benefits of a 
     fixed-size array but still want some flexibility over a raw array.
     */
-    const int BIG_NUMBER = 800000;
+    const int BIG_NUMBER = 80000;
 
     auto fillInsert = [BIG_NUMBER](auto& coll) {
       for (int i = 0; i < BIG_NUMBER; i++) {

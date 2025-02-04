@@ -121,10 +121,10 @@ namespace geom_examples {
       std::cout << "  ";
     }
   }
-  double basisFunctionNoCache(const std::vector<double>& knotVector, int i, int p, double t) {
+  double basisFunctionNoCache(const std::vector<double>& knot_vector, int i, int p, double t) {
     if (p == 0) { // zero degree basis function
       // Base case: the 0th degree basis function is 1 if t is within the interval [t_i, t_{i+1}]
-      const double result = (t >= knotVector[i] && t < knotVector[i + 1]) ? 1.0 : 0.0;
+      const double result = (t >= knot_vector[i] && t < knot_vector[i + 1]) ? 1.0 : 0.0;
       //indent(p);
       //std::cout << "N(" << i << ", " << p << ", " << t << ") = " << result << std::endl;;
       return result;
@@ -133,14 +133,14 @@ namespace geom_examples {
       //indent(p);
       //std::cout << "N(" << i << ", " << p << ", " << t << ") needs lower degree work ..." << std::endl;
 
-      double denom1 = knotVector[i + p] - knotVector[i];
-      double denom2 = knotVector[i + p + 1] - knotVector[i + 1];
+      double denom1 = knot_vector[i + p] - knot_vector[i];
+      double denom2 = knot_vector[i + p + 1] - knot_vector[i + 1];
 
-      double num1 = (t - knotVector[i]);
-      double num2 = (knotVector[i + p + 1] - t);
+      double num1 = (t - knot_vector[i]);
+      double num2 = (knot_vector[i + p + 1] - t);
 
-      double basis1 = basisFunctionNoCache(knotVector, i, p - 1, t);
-      double basis2 = basisFunctionNoCache(knotVector, i + 1, p - 1, t);
+      double basis1 = basisFunctionNoCache(knot_vector, i, p - 1, t);
+      double basis2 = basisFunctionNoCache(knot_vector, i + 1, p - 1, t);
 
       //indent(p);
       //std::cout << "N(" << i << ", " << p << ", " << t << ") = ";
@@ -193,52 +193,52 @@ namespace geom_examples {
 
   class BasisEvaluator {
     private:
-      std::vector<double> knotVector;
+      std::vector<double> knot_vector;
 
     public:
-      int cacheStrategy = NO_CACHE;
+      int cache_strategy = NO_CACHE;
       // strategy 0 uses no cache
       std::map<std::tuple<int, int, double>, double> basisCacheMap; 
       std::unordered_map<std::tuple<int, int, double>, double, KeyHash> basisCacheUnorderedMap;
 
       BasisEvaluator(
-        const std::vector<double>& knotVector,
-        int cacheStrategy = NO_CACHE
-      ): knotVector(knotVector), cacheStrategy(cacheStrategy) {}
+        const std::vector<double>& knot_vector,
+        int cache_strategy = NO_CACHE
+      ): knot_vector(knot_vector), cache_strategy(cache_strategy) {}
 
       double basisFunction(int i, int p, double t) {
-        if (cacheStrategy == NO_CACHE) {
-          return basisFunctionNoCache(knotVector, i, p, t);
-        } else if(cacheStrategy == MAP_CACHE_SIMPLE) {
+        if (cache_strategy == NO_CACHE) {
+          return basisFunctionNoCache(knot_vector, i, p, t);
+        } else if(cache_strategy == MAP_CACHE_SIMPLE) {
           // Use a std::map as a cache to store the basis function values
           auto key = std::make_tuple(i, p, t);
           if (basisCacheMap.find(key) == basisCacheMap.end()) {
             // std::cout << "Cache miss for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
-            basisCacheMap[key] = basisFunctionNoCache(knotVector, i, p, t);
+            basisCacheMap[key] = basisFunctionNoCache(knot_vector, i, p, t);
           } else {
             // std::cout << "Cache hit for basis function (" << i << ", " << p << ", " << t << ")" << std::endl;
           }
           return basisCacheMap[key];    
-        } else if(cacheStrategy == MAP_CACHE_EMPLACE) {
+        } else if(cache_strategy == MAP_CACHE_EMPLACE) {
           // Use a std::map as a cache to store the basis function values
           auto key = std::make_tuple(i, p, t);
 
           // Use emplace to avoid redundant lookups
           auto [iter, inserted] = basisCacheMap.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
           if (inserted) {
-              iter->second = basisFunctionNoCache(knotVector, i, p, t);
+              iter->second = basisFunctionNoCache(knot_vector, i, p, t);
           }
           return iter->second;
-        } else if (cacheStrategy == UNORDERED_MAP_CACHE) {
+        } else if (cache_strategy == UNORDERED_MAP_CACHE) {
             // Use an unordered_map-based cache for faster lookups
             auto key = std::make_tuple(i, p, t);
             auto [iter, inserted] = basisCacheUnorderedMap.emplace(key, 0.0); // Insert a default value (0.0) if key is missing
             if (inserted) {
-                iter->second = basisFunctionNoCache(knotVector, i, p, t);
+                iter->second = basisFunctionNoCache(knot_vector, i, p, t);
             }
             return iter->second;
           } else {
-          return basisFunctionNoCache(knotVector, i, p, t);
+          return basisFunctionNoCache(knot_vector, i, p, t);
         }
       }
   };
@@ -247,9 +247,9 @@ namespace geom_examples {
   class NURBS {
     public:
       int degree;
-      std::vector<Point> controlPoints;
+      std::vector<Point> control_points;
       std::vector<double> weights;
-      std::vector<double> knotVector;
+      std::vector<double> knot_vector;
 
     private:
       bool useCache = false;
@@ -258,17 +258,17 @@ namespace geom_examples {
     public:
       NURBS(
         int degree, 
-        const std::vector<Point>& controlPoints, 
+        const std::vector<Point>& control_points, 
         const std::vector<double>& weights, 
-        const std::vector<double>& knotVector,
-        int cacheStrategy
-      ): degree(degree), controlPoints(controlPoints), 
-          weights(weights), knotVector(knotVector), 
-          basisEvaluator(knotVector, cacheStrategy) {
-        if (degree + controlPoints.size() + 1 != knotVector.size()) {
+        const std::vector<double>& knot_vector,
+        int cache_strategy
+      ): degree(degree), control_points(control_points), 
+          weights(weights), knot_vector(knot_vector), 
+          basisEvaluator(knot_vector, cache_strategy) {
+        if (degree + control_points.size() + 1 != knot_vector.size()) {
           std::cerr << "Invalid NURBS curve definition: degree + control points + 1 != knot vector size" << std::endl;
         }
-        if (weights.size() != controlPoints.size()) {
+        if (weights.size() != control_points.size()) {
           std::cerr << "Invalid NURBS curve definition: weights size != control points size" << std::endl;
         }
       }
@@ -279,7 +279,7 @@ namespace geom_examples {
 
       // Evaluate the NURBS curve at parameter t
       const Point evaluate(double t) const {
-        int n = controlPoints.size();
+        int n = control_points.size();
         int p = degree;
         
         // Compute the weighted sum of control points
@@ -295,9 +295,9 @@ namespace geom_examples {
           //  << " control point " << i 
           //  <<" basis function evaluation " << N 
           //  << " weight " << weight << std::endl << std::endl;
-          numeratorX += N * weight * controlPoints[i].x;
-          numeratorY += N * weight * controlPoints[i].y;
-          numeratorZ += N * weight * controlPoints[i].z;
+          numeratorX += N * weight * control_points[i].x;
+          numeratorY += N * weight * control_points[i].y;
+          numeratorZ += N * weight * control_points[i].z;
           denominator += N * weight;
         }
 
@@ -312,12 +312,12 @@ namespace geom_examples {
       }
   };
 
-  NURBS degree2_nurbs_example1(
-    int cacheStrategy
+  NURBS degree2NurbsExample1(
+    int cache_strategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 2;
-    std::vector<Point> controlPoints = {
+    std::vector<Point> control_points = {
       Point(0, 0, 0), 
       Point(1, 1, 0), 
       Point(2, 0, 0)
@@ -327,7 +327,7 @@ namespace geom_examples {
       1.0, 
       1.0
     };
-    std::vector<double> knotVector = {  // 3 + 2 + 1 = 6 knots
+    std::vector<double> knot_vector = {  // 3 + 2 + 1 = 6 knots
       0.0,
       0.0,
       0.0,
@@ -336,18 +336,18 @@ namespace geom_examples {
       1.0,
       1.0
     };
-    BasisEvaluator basisEvaluator(knotVector, cacheStrategy);
+    BasisEvaluator basisEvaluator(knot_vector, cache_strategy);
     // Create the NURBS curve
-    NURBS nurbs(degree, controlPoints, weights, knotVector, cacheStrategy);
+    NURBS nurbs(degree, control_points, weights, knot_vector, cache_strategy);
     return nurbs;
   }
 
-  NURBS degree3_nurbs_example1(
-    int cacheStrategy
+  NURBS degree3NurbsExample1(
+    int cache_strategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 3;
-    std::vector<Point> controlPoints = {
+    std::vector<Point> control_points = {
       Point(0, 0, 0), 
       Point(1, 1, 0), 
       Point(2, 0, 0),
@@ -359,7 +359,7 @@ namespace geom_examples {
       1.0,
       1.0,
     };
-    std::vector<double> knotVector = {   // 4 + 3 + 1 = 8 knots
+    std::vector<double> knot_vector = {   // 4 + 3 + 1 = 8 knots
       0.0,
       0.0,
       0.0,
@@ -370,16 +370,16 @@ namespace geom_examples {
       1.0
     };
     // Create the NURBS curve
-    NURBS nurbs(degree, controlPoints, weights, knotVector, cacheStrategy);
+    NURBS nurbs(degree, control_points, weights, knot_vector, cache_strategy);
     return nurbs;
   }
 
-  NURBS degree4_nurbs_example1(
-    int cacheStrategy
+  NURBS degree4NurbsExample1(
+    int cache_strategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 4;
-    std::vector<Point> controlPoints = {
+    std::vector<Point> control_points = {
       Point(0, 0, 0), 
       Point(1, 1, 0), 
       Point(2, 0, 0),
@@ -393,7 +393,7 @@ namespace geom_examples {
       1.0,
       1.0,
     };
-    std::vector<double> knotVector = { // 5 + 4 + 1 = 10 knots
+    std::vector<double> knot_vector = { // 5 + 4 + 1 = 10 knots
       0.0,
       0.0,
       0.0,
@@ -406,16 +406,16 @@ namespace geom_examples {
       1.0
     };
     // Create the NURBS curve
-    NURBS nurbs(degree, controlPoints, weights, knotVector, cacheStrategy);
+    NURBS nurbs(degree, control_points, weights, knot_vector, cache_strategy);
     return nurbs;
   }
 
-  NURBS degree6_nurbs_example1(
-    int cacheStrategy
+  NURBS degree6NurbsExample1(
+    int cache_strategy
   ) {
     // Define degree, control points, weights, and knot vector
     int degree = 6;
-    std::vector<Point> controlPoints = {
+    std::vector<Point> control_points = {
       Point(0, 0, 0), 
       Point(1, 1, 0), 
       Point(2, 0, 0),
@@ -433,7 +433,7 @@ namespace geom_examples {
       1.0,
       1.0,
     };
-    std::vector<double> knotVector = { // 7 + 6 + 1 = 14 knots
+    std::vector<double> knot_vector = { // 7 + 6 + 1 = 14 knots
       0.0,
       0.0,
       0.0,
@@ -450,11 +450,11 @@ namespace geom_examples {
       1.0
     };
     // Create the NURBS curve
-    NURBS nurbs(degree, controlPoints, weights, knotVector, cacheStrategy);
+    NURBS nurbs(degree, control_points, weights, knot_vector, cache_strategy);
     return nurbs;
   }
 
-  void nurbs_example() {
+  void nurbsExample() {
 
     /*
     // check for read out of bounds
@@ -465,13 +465,13 @@ namespace geom_examples {
     };
     std::cout << "weights[3] = " << weights[3] << std::endl;
     */
-   const NURBS nurbs = degree2_nurbs_example1(NO_CACHE);
+   const NURBS nurbs = degree2NurbsExample1(NO_CACHE);
 
     /*
     // Basis functions should sum to 1
     const double t = 0.499;
     double sum = 0.0;
-    for (int i = 0; i < nurbs.controlPoints.size(); ++i) {
+    for (int i = 0; i < nurbs.control_points.size(); ++i) {
       const double N = nurbs.basisFunction(i, 2, t);
       std::cout << "N = " << N << std::endl;
       sum += N;
@@ -488,8 +488,8 @@ namespace geom_examples {
     // evaluate at a set of points and display
     std::vector<Point> ptsToDisplay;
     const int NUM_SAMPLES = 30;
-    const double start = nurbs.knotVector[0];
-    const double end = nurbs.knotVector[nurbs.knotVector.size() - 1];
+    const double start = nurbs.knot_vector[0];
+    const double end = nurbs.knot_vector[nurbs.knot_vector.size() - 1];
     for (int i = 0; i < NUM_SAMPLES; i++) {
       const double t = start + i * (end - start) / (NUM_SAMPLES - 1);
       const Point& result = nurbs.evaluate(t);
@@ -516,8 +516,8 @@ namespace geom_examples {
 
     int largeCoordSumCount = 0;
 
-    const double startParam = nurbs.knotVector[0];
-    const double endParam = nurbs.knotVector[nurbs.knotVector.size() - 1];
+    const double startParam = nurbs.knot_vector[0];
+    const double endParam = nurbs.knot_vector[nurbs.knot_vector.size() - 1];
 
     std::vector<double> paramValues;
 
@@ -542,23 +542,23 @@ namespace geom_examples {
     return elapsedTime;
   }
 
-  std::string no_cache_message(double t) {
+  std::string noCacheMessage(double t) {
     return "  No cache time            " + std::to_string(t) + "\n";
   }
-  std::string map_simple_cache_message(double t) {
+  std::string mapSimpleCacheMessage(double t) {
     return "  Simple map cache time    " + std::to_string(t) + "\n";
   }
-  std::string map_emplace_cache_message(double t) {
+  std::string mapEmplaceCacheMessage(double t) {
     return "  Emplace map cache time   " + std::to_string(t) + "\n";
   }
-  std::string unordered_map_cache_message(double t) {
+  std::string unorderedMapCacheMessage(double t) {
     return "  Unordered map cache time " + std::to_string(t) + "\n";
   }
-  std::string doWork(int d, int cacheStrategy) {
+  std::string doWork(int d, int cache_strategy) {
     const NURBS nurbs = 
-      d == 2 ? degree2_nurbs_example1(cacheStrategy) :
-      d == 4 ? degree4_nurbs_example1(cacheStrategy) :
-      degree6_nurbs_example1(cacheStrategy);
+      d == 2 ? degree2NurbsExample1(cache_strategy) :
+      d == 4 ? degree4NurbsExample1(cache_strategy) :
+      degree6NurbsExample1(cache_strategy);
 
     // a big number of evaluations
     //  - uses the cache more
@@ -573,21 +573,21 @@ namespace geom_examples {
     const double elapsedTime = doConfiguredWork(nurbs, numParamValsPossible, numEvaluationsForPerf);
 
     std::string result = "";
-    if (cacheStrategy == NO_CACHE) {
-      result += no_cache_message(elapsedTime);
-    } else if (cacheStrategy == MAP_CACHE_SIMPLE) {
-      result += map_simple_cache_message(elapsedTime);
-    } else if (cacheStrategy == MAP_CACHE_EMPLACE) {
-      result += map_emplace_cache_message(elapsedTime);
-    } else if (cacheStrategy == UNORDERED_MAP_CACHE) {
-      result +=  unordered_map_cache_message(elapsedTime);
+    if (cache_strategy == NO_CACHE) {
+      result += noCacheMessage(elapsedTime);
+    } else if (cache_strategy == MAP_CACHE_SIMPLE) {
+      result += mapSimpleCacheMessage(elapsedTime);
+    } else if (cache_strategy == MAP_CACHE_EMPLACE) {
+      result += mapEmplaceCacheMessage(elapsedTime);
+    } else if (cache_strategy == UNORDERED_MAP_CACHE) {
+      result +=  unorderedMapCacheMessage(elapsedTime);
     }
     std::cout << result;
     return result;
   }
 
 
-  std::string nurbs_performance_example() {
+  std::string nurbsPerformanceExample() {
 
     std::string result = "";
     std::string heading = "Degree 2 examples are quite fast to calculate basis values\n";

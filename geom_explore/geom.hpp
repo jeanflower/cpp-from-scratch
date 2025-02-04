@@ -34,13 +34,15 @@ namespace geom_examples {
   const int NUM_SAMPLES = 5000;
   //const int NUM_SAMPLES = 5;
 
-  void addGeometryToView(const std::vector<PtCollection>& ptColls);
+  void addGeometryToView(const std::vector<PtCollection>& pt_colls);
 
   void writeGeometryToJSON();
 
   // build a nurbs curve and evaluate it
-  void nurbs_example();
+  void nurbsExample();
 
   // build a nurbs curve, do evaluations and add up the time taken
-  std::string nurbs_performance_example();
+  std::string nurbsPerformanceExample();
+
+  // 
 }

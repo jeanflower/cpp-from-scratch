@@ -1,2 +1,2 @@
 cd build
-ctest
+ctest -V -O output/test_output.log

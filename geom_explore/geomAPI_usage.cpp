@@ -19,66 +19,66 @@ namespace geomAPI_examples {
 
   template <typename PointCollection, typename LineCollection, typename EvalFunc>
   void createOutputFile(
-    const PointCollection& ptUvs,
-    const LineCollection& isoVLists,
-    const LineCollection& isoULists,
-    const EvalFunc& evalSurface
+    const PointCollection& pt_uvs,
+    const LineCollection& iso_v_lists,
+    const LineCollection& iso_u_lists,
+    const EvalFunc& eval_surface
   ) {
-    std::vector<geom_examples::PtCollection> ptsColls;
+    std::vector<geom_examples::PtCollection> pts_colls;
 
     // build a collection of surface positions
-    std::vector<geom_examples::Point> ptsToDisplay(ptUvs.size());
-    std::transform(ptUvs.begin(), ptUvs.end(), ptsToDisplay.begin(), evalSurface);
+    std::vector<geom_examples::Point> pts_to_display(pt_uvs.size());
+    std::transform(pt_uvs.begin(), pt_uvs.end(), pts_to_display.begin(), eval_surface);
 
-    ptsColls.push_back({
+    pts_colls.push_back({
       .color = geom_examples::CYAN,
-      .pts = ptsToDisplay,
+      .pts = pts_to_display,
       .isLine = false
     });
 
-    for (const auto uvs : isoVLists) {
-      std::vector<geom_examples::Point> lineVertices(uvs.size());
-      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
-      ptsColls.push_back({
+    for (const auto uvs : iso_v_lists) {
+      std::vector<geom_examples::Point> line_vertices(uvs.size());
+      std::transform(uvs.begin(), uvs.end(), line_vertices.begin(), eval_surface);
+      pts_colls.push_back({
         .color = geom_examples::YELLOW,
-        .pts = lineVertices,
+        .pts = line_vertices,
         .isLine = true
       });
     }
 
-    for (const auto uvs : isoULists) {
-      std::vector<geom_examples::Point> lineVertices(uvs.size());
-      std::transform(uvs.begin(), uvs.end(), lineVertices.begin(), evalSurface);
-      ptsColls.push_back({
+    for (const auto uvs : iso_u_lists) {
+      std::vector<geom_examples::Point> line_vertices(uvs.size());
+      std::transform(uvs.begin(), uvs.end(), line_vertices.begin(), eval_surface);
+      pts_colls.push_back({
         .color = geom_examples::RED,
-        .pts = lineVertices,
+        .pts = line_vertices,
         .isLine = true
       });
     }
 
-    geom_examples::addGeometryToView(ptsColls);  
+    geom_examples::addGeometryToView(pts_colls);  
   }
 
   // this is an entry point into this file
-  void sphere_example() {
+  void sphereExample() {
 
     // Create an axis system for center and orientation of the sphere
-    gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
+    gp_Ax3 axis_system(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
     Standard_Real radius = 10.0;
 
     // leaks
-    // const Geom_SphericalSurface* sphere = new Geom_SphericalSurface(axisSystem, radius);
+    // const Geom_SphericalSurface* sphere = new Geom_SphericalSurface(axis_system, radius);
 
     // does not leak
-    //const std::unique_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
+    //const std::unique_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axis_system, radius);
     //const Geom_SphericalSurface* sphere = owner.get();
 
     // does not leak
-    //const std::shared_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axisSystem, radius);
+    //const std::shared_ptr<Geom_SphericalSurface> owner = std::make_unique<Geom_SphericalSurface>(axis_system, radius);
     //const Geom_SphericalSurface* sphere = owner.get();
 
     // does not leak, uses internal OpenCascade memory management system
-    Handle(Geom_SphericalSurface) sphere = new Geom_SphericalSurface(axisSystem, radius);
+    Handle(Geom_SphericalSurface) sphere = new Geom_SphericalSurface(axis_system, radius);
     auto evalSphere = [sphere](const std::pair<double, double>& uv) {
       const gp_Pnt p = sphere->Value(uv.first, uv.second);
       return geom_examples::Point(p.X(), p.Y(), p.Z());
@@ -92,101 +92,101 @@ namespace geomAPI_examples {
     */
 
     // select some uvs on the surface
-    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> ptUvs;
+    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> pt_uvs;
     for (int i = 0; i < geom_examples::NUM_SAMPLES; i++) {
-      ptUvs[i] = std::make_pair(
+      pt_uvs[i] = std::make_pair(
         0.0 +       5 * 2 * M_PI * i / geom_examples::NUM_SAMPLES,  // winding around the sphere
         M_PI / 10 + 8 * 2 * M_PI * i / geom_examples::NUM_SAMPLES   // like a LissaJous curve
       );
     }
 
-    std::vector<std::vector<std::pair<double, double>>> isoVLists;
-    std::vector<std::vector<std::pair<double, double>>> isoULists;
+    std::vector<std::vector<std::pair<double, double>>> iso_v_lists;
+    std::vector<std::vector<std::pair<double, double>>> iso_u_lists;
 
     // build uvs for isolines with constant V
     const int MAX_ISO = 8;
-    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+    for (int line_index = 0; line_index < MAX_ISO; line_index++) {
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
       std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
       for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
           2 * M_PI * i / geom_examples::NUM_SAMPLES, // winding around the sphere
-          -M_PI / 2 + M_PI * lineIndex / MAX_ISO // constant V
+          -M_PI / 2 + M_PI * line_index / MAX_ISO // constant V
         );
       }
-      isoVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      iso_v_lists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
     // build uvs for isolines with constant U
-    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
-      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> lineVertices;
+    for (int line_index = 0; line_index < MAX_ISO; line_index++) {
+      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> line_vertices;
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
       std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
       for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
-          2 * M_PI * lineIndex / MAX_ISO, // constant U
+          2 * M_PI * line_index / MAX_ISO, // constant U
           -M_PI / 2 + M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
-      isoULists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      iso_u_lists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    createOutputFile(ptUvs, isoVLists, isoULists, evalSphere);
+    createOutputFile(pt_uvs, iso_v_lists, iso_u_lists, evalSphere);
   }
 
     // this is an entry point into this file
-  void torus_example() {
+  void torusExample() {
 
     // Create an axis system for center and orientation of the sphere
-    gp_Ax3 axisSystem(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
-    Standard_Real minorRadius = 5.0;
-    Standard_Real majorRadius = 30.0;
+    gp_Ax3 axis_system(gp_Pnt(0.0, 0.0, 0.0), gp_Dir(0.0, 0.0, 1.0));
+    Standard_Real minor_radius = 5.0;
+    Standard_Real major_radius = 30.0;
 
-    Handle(Geom_ToroidalSurface) torus = new Geom_ToroidalSurface(axisSystem, majorRadius, minorRadius);
+    Handle(Geom_ToroidalSurface) torus = new Geom_ToroidalSurface(axis_system, major_radius, minor_radius);
     auto evalTorus = [torus](const std::pair<double, double>& uv) {
       const gp_Pnt& p = torus->Value(uv.first, uv.second);
       return geom_examples::Point(p.X(), p.Y(), p.Z());
     };
 
     // select some uvs on the surface
-    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> ptUvs;
+    std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES> pt_uvs;
     for (int i = 0; i < geom_examples::NUM_SAMPLES; i++) {
-      ptUvs[i] = std::make_pair(
+      pt_uvs[i] = std::make_pair(
         0.0 +       5 * 2 * M_PI * i / geom_examples::NUM_SAMPLES,  // winding around the sphere
         M_PI / 10 + 8 * 2 * M_PI * i / geom_examples::NUM_SAMPLES   // like a LissaJous curve
       );
     }
 
-    std::vector<std::vector<std::pair<double, double>>> isoVLists;
-    std::vector<std::vector<std::pair<double, double>>> isoULists;
+    std::vector<std::vector<std::pair<double, double>>> iso_v_lists;
+    std::vector<std::vector<std::pair<double, double>>> iso_u_lists;
 
     // build uvs for isolines with constant V
     const int MAX_ISO = 8;
-    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
+    for (int line_index = 0; line_index < MAX_ISO; line_index++) {
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
       std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
       for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
           2 * M_PI * i / geom_examples::NUM_SAMPLES, // winding around the sphere
-          2 * M_PI * lineIndex / MAX_ISO // constant V
+          2 * M_PI * line_index / MAX_ISO // constant V
         );
       }
-      isoVLists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      iso_v_lists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
     // build uvs for isolines with constant U
-    for (int lineIndex = 0; lineIndex < MAX_ISO; lineIndex++) {
-      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> lineVertices;
+    for (int line_index = 0; line_index < MAX_ISO; line_index++) {
+      std::array<gp_Pnt, geom_examples::NUM_SAMPLES + 1> line_vertices;
       // closed isolines have repeated start/end uvs, so NUM_SAMPLES + 1
       std::array<std::pair<double, double>, geom_examples::NUM_SAMPLES + 1> uvs;
       for (int i = 0; i < geom_examples::NUM_SAMPLES + 1; i++) {
         uvs[i] = std::make_pair(
-          2 * M_PI * lineIndex / MAX_ISO, // constant U
+          2 * M_PI * line_index / MAX_ISO, // constant U
           2 * M_PI * i / geom_examples::NUM_SAMPLES // winding around the sphere
         );
       }
-      isoULists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
+      iso_u_lists.push_back(std::vector<std::pair<double, double>>(uvs.begin(), uvs.end()));
     }
 
-    createOutputFile(ptUvs, isoVLists, isoULists, evalTorus);
+    createOutputFile(pt_uvs, iso_v_lists, iso_u_lists, evalTorus);
   }
 
 }

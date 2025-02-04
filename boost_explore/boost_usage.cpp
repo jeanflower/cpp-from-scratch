@@ -4,7 +4,7 @@
 
 namespace boost_data_types {
 
-  void optional_example() {
+  void optionalExample() {
     boost::optional<int> opt;
     if (opt) {
       std::cout << __func__ << " " << "Value: " << *opt << std::endl;

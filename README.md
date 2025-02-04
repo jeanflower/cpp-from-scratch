@@ -16,7 +16,7 @@ This project provides multiple ways to build and run the code:
 ## Test
 
 - Testing is managed with **CTest**.
-- The [`test_main.cpp`](test_main.cpp) file contains an example test case.
+- Run [`ctest.sh`](ctest.sh) to run tests.
 - Note: Currently, there are no significant tests implemented.
 - For memory leak detection, use the [`asan_leak_check.sh`](asan_leak_check.sh) script.
 
@@ -40,4 +40,26 @@ This project provides multiple ways to build and run the code:
 ## Profiling
 
 On OSX, open the Instruments.app and select 'CPU Profiler'. In the bar at the top, click to Select Target and select main. Then hut the 'record' button (tooltip 'Start an immediate mode recording').
+
+## Style conventions
+
+## C++ Naming Conventions
+
+### Functions, Variables, Classes, and Constants
+
+| **Context**       | **Preferred Convention**      |
+|-------------------|-----------------------------|
+| **Functions**     | `camelCase` (`calculateSpeed`) |
+| **Variables**     | `snake_case` (`max_speed`)    |
+| **Classes/Structs** | `PascalCase` (`DataProcessor`) |
+| **Macros/Constants** | `UPPER_CASE` (`MAX_VALUE`) |
+
+### Examples:
+```cpp
+class DataProcessor {  // PascalCase for class
+public:
+    int max_value;  // snake_case for variables
+    void processData();  // camelCase for functions
+};
+```
 
