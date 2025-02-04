@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
-#include "nr_explore/gaussj.hpp"
+#include "geom_explore/geom.hpp"
 
 int main() {
-    nr_explore::testGaussj();
+    geom_examples::circleExample();
 
     return 0;
 }

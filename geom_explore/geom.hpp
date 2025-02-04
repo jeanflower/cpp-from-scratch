@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <optional>
 
 namespace geom_examples {
 
@@ -18,11 +19,51 @@ namespace geom_examples {
     double Z() const;
   };
 
+  struct Vector {
+    double x, y, z;
+
+    // Constructor
+    Vector(double x = 0, double y = 0, double z = 0);
+
+    // Getter functions
+    double X() const;
+    double Y() const;
+    double Z() const;
+  };
+
   struct PtCollection {
     int color;
     std::vector<Point> pts;
     bool isLine;
   };
+
+  class Curve {
+    public:
+      // Evaluate curve at parameter t
+      // Returns a Point, optionally calculates first and second derivatives
+      virtual Point evaluate(
+        double t, 
+        std::optional<Vector> first_derivative = std::nullopt, 
+        std::optional<Vector> second_derivative = std::nullopt
+      ) const = 0;
+
+      virtual ~Curve() = default;
+  };
+
+  class Circle : public Curve {
+  private:
+      double radius;
+
+  public:
+      explicit Circle(double r);
+
+      Point evaluate(
+        double t, 
+        std::optional<Vector> first_derivative = std::nullopt, 
+        std::optional<Vector> second_derivative = std::nullopt
+      ) const override;
+  };
+
 
   constexpr uint32_t RED     = 0xFF0000;
   constexpr uint32_t GREEN   = 0x00FF00;
@@ -44,5 +85,5 @@ namespace geom_examples {
   // build a nurbs curve, do evaluations and add up the time taken
   std::string nurbsPerformanceExample();
 
-  // 
+  void circleExample();
 }

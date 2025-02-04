@@ -28,4 +28,6 @@ TEST_CASE("Sample Test", "[sample]") {
 
     nr_explore::testGaussj();
 
+    geom_examples::circleExample();
+
 }

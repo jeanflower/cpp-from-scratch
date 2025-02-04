@@ -17,6 +17,34 @@ namespace geom_examples {
   double Point::Y() const { return y; }
   double Point::Z() const { return z; }
 
+  Vector::Vector(double x, double y, double z) : x(x), y(y), z(z) {}
+
+  double Vector::X() const { return x; }
+  double Vector::Y() const { return y; }
+  double Vector::Z() const { return z; }
+
+  Circle::Circle(double r) : radius(r) {}
+
+  Point Circle::evaluate(
+    double t, 
+    std::optional<Vector> first_derivative, 
+    std::optional<Vector> second_derivative
+  ) const {
+    Point p{radius * cos(t), radius * sin(t)};
+
+    if (first_derivative) {
+      first_derivative -> x = -radius * sin(t);
+      first_derivative -> y = radius * cos(t);
+    }
+
+    if (second_derivative) {
+      second_derivative -> x = -radius * cos(t);
+      second_derivative -> y = -radius * sin(t);
+    }
+
+    return p;
+  }
+
   std::vector<geom_examples::PtCollection> viewables;
 
   void addGeometryToView(const std::vector<PtCollection>& ptColls) {
@@ -586,7 +614,6 @@ namespace geom_examples {
     return result;
   }
 
-
   std::string nurbsPerformanceExample() {
 
     std::string result = "";
@@ -615,4 +642,15 @@ namespace geom_examples {
     return result;
   }
 
+  void circleExample() {
+    Circle c(5.0);
+    double t = 1.0;
+
+    Vector first, second;
+    Point p = c.evaluate(t, first, second);
+
+    std::cout << "Point: (" << p.x << ", " << p.y << ")\n";
+    std::cout << "First Derivative: (" << first.x << ", " << first.y << ")\n";
+    std::cout << "Second Derivative: (" << second.x << ", " << second.y << ")\n";
+  }
 }
