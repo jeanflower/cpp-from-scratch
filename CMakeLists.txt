@@ -75,8 +75,10 @@ else()
     
     # Add executable target (your main file)
     add_executable(main main.cpp)
-    # Add a test executable (your test file)
+
+    # Add a test executable (your test files)
     add_executable(test_main test_main.cpp)
+    add_executable(test_geom test_geom.cpp)
     
     # Link external libraries to main
     target_link_libraries(main 
@@ -97,13 +99,20 @@ else()
                 std_explore_lib
                 geomAPI_lib
                 geom_lib
-                nr_lib
     )
-    
+
+    target_link_libraries(test_geom 
+    PRIVATE Catch2::Catch2WithMain
+              ${Boost_LIBRARIES} 
+              geom_lib
+              nr_lib
+  )
+
     # Enable testing
     enable_testing()
     # Add a test for CTest
-    add_test(NAME MyTest COMMAND test_main)
+    add_test(NAME MainTest COMMAND test_main)
+    add_test(NAME GeomTest COMMAND test_geom)
     
 
 endif()

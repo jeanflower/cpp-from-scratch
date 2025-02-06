@@ -3,7 +3,8 @@
 #include "geom_explore/geom.hpp"
 
 int main() {
-    geom_examples::circleExample();
+  std::cout << "Running main() -------------\n";
+  geom_examples::circleExample();
 
-    return 0;
+  return 0;
 }
