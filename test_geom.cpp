@@ -5,16 +5,19 @@
 #include <string>
 #include "nr_explore/gaussj.hpp"
 
-TEST_CASE("geom", "[coverage]") {
-    geom_examples::nurbsExample();
-    const std::string message = geom_examples::nurbsPerformanceExample();
-    std::cout << message;
+TEST_CASE("geom coverage", "[coverage]") {
+  geom_examples::nurbsExample();
+  const std::string message = geom_examples::nurbsPerformanceExample();
+  std::cout << message;
 
-    geom_examples::writeGeometryToJSON();
+  geom_examples::writeGeometryToJSON();
 
-    nr_explore::testGaussj();
+  nr_explore::testGaussj();
 
-    geom_examples::circleExample();
+  geom_examples::circleExample();
 
-    //REQUIRE(1 + 1 == 3);  // This test will fail
+  //REQUIRE(1 + 1 == 3);  // This test will fail
+}
+TEST_CASE("geom checks", "[checks]") {
+  REQUIRE(geom_examples::test_curve_derivs());
 }

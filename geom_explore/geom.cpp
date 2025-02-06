@@ -27,20 +27,28 @@ namespace geom_examples {
 
   Point Circle::evaluate(
     double t, 
-    std::optional<Vector> first_derivative, 
-    std::optional<Vector> second_derivative
+    std::optional<std::reference_wrapper<Vector>> first_derivative, 
+    std::optional<std::reference_wrapper<Vector>> second_derivative
   ) const {
-    Point p{radius * cos(t), radius * sin(t)};
+    Point p{radius * cos(t), radius * sin(t)};      
 
-    if (first_derivative) {
-      first_derivative -> x = -radius * sin(t);
-      first_derivative -> y = radius * cos(t);
+    if (first_derivative.has_value()) {
+      first_derivative->get().x = -radius * sin(t);
+      first_derivative->get().y = radius * cos(t);
     }
 
-    if (second_derivative) {
-      second_derivative -> x = -radius * cos(t);
-      second_derivative -> y = -radius * sin(t);
+    if (second_derivative.has_value()) {
+      second_derivative->get().x = -radius * cos(t);
+      second_derivative->get().y = -radius * sin(t);
     }
+
+    // deliberately break the evaluator to test our tests!!
+    //if (t == 1000.0) { // terrible way to pick out a t
+    //  p.x = 88; // nonsense value to return
+    //}
+    //if (t == 1000.0 && first_derivative.has_value()) { // terrible way to pick out a t
+    //  first_derivative->get().x = 88; // nonsense value to return
+    //}
 
     return p;
   }
@@ -652,5 +660,142 @@ namespace geom_examples {
     std::cout << "Point: (" << p.x << ", " << p.y << ")\n";
     std::cout << "First Derivative: (" << first.x << ", " << first.y << ")\n";
     std::cout << "Second Derivative: (" << second.x << ", " << second.y << ")\n";
+  }
+
+  double calculate_sq_error(
+    const Curve& c,
+    double t,
+    const Point p,
+    const Vector& first_deriv,
+    double t_step
+  ){
+    Point p_nearby = c.evaluate(t + t_step); // above t
+    // std::cout << "p_nearby = " << p_nearby.X() << ", " << p_nearby.Y() << ", " << p_nearby.Z() << "\n";
+
+    Vector estimate( // TODO implement subtraction of Point
+      (p_nearby.X() - p.X()) / t_step,
+      (p_nearby.Y() - p.Y()) / t_step,
+      (p_nearby.Z() - p.Z()) / t_step
+    );
+
+    const double sq_error =  // TODO implement subtraction, sq_length of Vector
+      (estimate.X() - first_deriv.X()) * (estimate.X() - first_deriv.X()) +
+      (estimate.Y() - first_deriv.Y()) * (estimate.Y() - first_deriv.Y()) +
+      (estimate.Z() - first_deriv.Z()) * (estimate.Z() - first_deriv.Z());
+
+    std::cout << "estimate with t_step " << t_step << " = "
+      << estimate.X() << ", " << estimate.Y() << ", " << estimate.Z()
+      << " with sq error " << sq_error
+      << "\n";
+    return sq_error;
+  }
+
+  bool test_curve_derivs_at(
+    const Curve& c,
+    const double t
+  ) {
+    std::cout << "Test curve derivs at parameter value " << t << "\n";
+
+    Vector first_deriv;
+    Point p = c.evaluate(t, first_deriv);
+    //std::cout << "p = " << p.X() << ", " << p.Y() << ", " << p.Z() << "\n";
+    //std::cout << "first_deriv = " << first_deriv.X() << ", " << first_deriv.Y() << ", " << first_deriv.Z() << "\n";
+
+    const double sq_epsilon = 1e-9;
+
+    // convergence means: for all epsilon, there exists a delta such that...
+    // for all values of t within delta
+    // the error between estimated deriv and reported deriv is less than epsilon
+    //
+    // we're just picking one epsilon, guessing a delta,
+    // and performing a sample of evaluations within delta
+    // this isn't quite right in many ways...
+    // it assumes a monotonic convergence from our first estimate within tolerance
+
+    // ensure that, if we get close enough, the estimate is close to the reported value
+    // to this tolerance
+    const double minimal_delta = 1e-8; // if epsilon gets this small, we are close
+    const double initial_t_step = 0.001; // start relatively close for a good chance of a good estimate
+    const double initial_large_sq_error = std::numeric_limits<double>::max();
+    const double t_step_scaling = 0.5; // reduce t_step each time
+
+    // use a parameter-step of t_step to estimate the derivative at t
+    double t_step = initial_t_step; 
+
+    double sq_error = initial_large_sq_error;
+    bool found_good_estimate = false;
+    while (sq_error > sq_epsilon && t_step > minimal_delta) {
+      t_step *= t_step_scaling;
+      sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      found_good_estimate = sq_error < sq_epsilon;
+    }
+
+    if (!found_good_estimate) {
+      std::cout << "Failed to converge towards first_deriv, no estimate from above\n";
+      return false;
+    }
+
+    //std::cout << "found good estimate with delta = " << t_step << "\n";
+    bool stayed_good_estimate = true;
+    while (stayed_good_estimate && t_step > minimal_delta) {
+      t_step *= t_step_scaling;
+      const double sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      stayed_good_estimate = sq_error < sq_epsilon;
+    }
+    if (!stayed_good_estimate) {
+      std::cout << "Failed to converge towards first_deriv, lost estimate from above\n";
+      return false;
+    }
+    //std::cout << "kept good estimates to delta = " << t_step << "\n";
+
+    t_step = -initial_t_step; 
+
+    sq_error = initial_large_sq_error;
+    found_good_estimate = false;
+    while (sq_error > sq_epsilon && -t_step > minimal_delta) {
+      t_step *= t_step_scaling;
+      sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      found_good_estimate = sq_error < sq_epsilon;
+    }
+
+    if (!found_good_estimate) {
+      std::cout << "Failed to converge towards first_deriv, no estimate from below\n";
+      return false;
+    }
+    //std::cout << "found good estimate with t_step = " << t_step << "\n";
+
+    stayed_good_estimate = true;
+    while (stayed_good_estimate && -t_step > minimal_delta) {
+      t_step *= t_step_scaling;
+      const double sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      stayed_good_estimate = sq_error < sq_epsilon;
+    }
+    if (!stayed_good_estimate) {
+      std::cout << "Failed to converge towards first_deriv, lost estimate from below\n";
+      return false;
+    }
+    //std::cout << "kept good estimates to delta = " << t_step << "\n";
+
+    return true;
+  }
+
+  bool test_curve_derivs(){
+
+    // select a curve
+    const Circle c(12.0);
+
+    // select values of t to analyse for derivative accuracy    
+    bool result = true;
+    if (result) {
+      result = test_curve_derivs_at(c, 0.2);
+    }
+    if (result) {
+      result = test_curve_derivs_at(c, 0);
+    }
+    if (result) {
+      result = test_curve_derivs_at(c, 1000.0);
+    }
+
+    return result;
   }
 }

@@ -43,24 +43,24 @@ namespace geom_examples {
       // Returns a Point, optionally calculates first and second derivatives
       virtual Point evaluate(
         double t, 
-        std::optional<Vector> first_derivative = std::nullopt, 
-        std::optional<Vector> second_derivative = std::nullopt
+        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
+        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
       ) const = 0;
 
       virtual ~Curve() = default;
   };
 
   class Circle : public Curve {
-  private:
+    private:
       double radius;
 
-  public:
+    public:
       explicit Circle(double r);
 
       Point evaluate(
         double t, 
-        std::optional<Vector> first_derivative = std::nullopt, 
-        std::optional<Vector> second_derivative = std::nullopt
+        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
+        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
       ) const override;
   };
 
@@ -86,4 +86,6 @@ namespace geom_examples {
   std::string nurbsPerformanceExample();
 
   void circleExample();
+
+  bool test_curve_derivs();
 }
