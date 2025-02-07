@@ -50,7 +50,9 @@ namespace geom_examples {
     //if (t == 1000.0 && first_derivative.has_value()) { // terrible way to pick out a t
     //  first_derivative->get().x = 88; // nonsense value to return
     //}
-
+    //if (t == 1000.0 && second_derivative.has_value()) { // terrible way to pick out a t
+    //  second_derivative->get().x = 88; // nonsense value to return
+    //}
     return p;
   }
   
@@ -210,13 +212,29 @@ namespace geom_examples {
         return first_deriv;
     };
 
+    // build a function that provides 2nd derivs
+    std::function<Vector(double)> second_deriv_evaluator = [&c](double t) -> Vector {
+        Vector first_deriv, second_deriv;
+        Point p = c.evaluate(t, first_deriv, second_deriv);
+        return second_deriv;
+    };
+
     std::cout << "Test curve derivs at parameter value " << t << "\n";
 
-    return test_curve_derivs_generic(
+    bool result = true;
+    result = test_curve_derivs_generic(
       position_evaluator,
       first_deriv_evaluator,
       t
     );
+    if (result) {
+      result = test_curve_derivs_generic(
+        first_deriv_evaluator,
+        second_deriv_evaluator,
+        t
+      );
+    }
+    return result;
   }
 
   bool test_curve_derivs(){
