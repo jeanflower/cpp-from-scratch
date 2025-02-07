@@ -9,6 +9,9 @@
 #include <chrono>
 #include "geom.hpp"
 #include "geom_display.hpp"
+#include <functional>
+#include <utility>  // for std::pair
+
 
 namespace geom_examples {
   // Define a 3D point structure
@@ -69,13 +72,14 @@ namespace geom_examples {
   }
 
   double calculate_sq_error(
-    std::function<Vector(double)>& position_evaluator,
+    std::function<std::pair<Vector, Vector>(double)>& geom_evaluator,
     double t,
     const Vector p,
     const Vector& first_deriv,
     double t_step
   ){
-    Vector p_nearby = position_evaluator(t + t_step); // above t
+    std::pair<Vector, Vector> evals = geom_evaluator(t + t_step); // above t
+    Vector p_nearby = evals.first; // reads like position but could actually be a higher deriv
     // std::cout << "p_nearby = " << p_nearby.X() << ", " << p_nearby.Y() << ", " << p_nearby.Z() << "\n";
 
     Vector estimate( // TODO implement subtraction of Point
@@ -99,12 +103,12 @@ namespace geom_examples {
   // can be used for testing derivatives at any order
   // being given evaluators for order n and n+1
   bool test_curve_derivs_generic(
-    std::function<Vector(double)>& position_evaluator,
-    std::function<Vector(double)>& first_deriv_evaluator, // TODO evaluate both together (cheaper)
+    std::function<std::pair<Vector, Vector>(double)>& geom_evaluator,
     double t
   ) {
-    Vector first_deriv = first_deriv_evaluator(t);
-    Vector p = position_evaluator(t);
+    std::pair<Vector, Vector> evals = geom_evaluator(t);
+    Vector p = evals.first; // reads like position but could actually be a higher deriv
+    Vector first_deriv = evals.second;
 
     //std::cout << "p = " << p.X() << ", " << p.Y() << ", " << p.Z() << "\n";
     //std::cout << "first_deriv = " << first_deriv.X() << ", " << first_deriv.Y() << ", " << first_deriv.Z() << "\n";
@@ -135,7 +139,7 @@ namespace geom_examples {
     while (sq_error > sq_epsilon && t_step > minimal_delta) {
       t_step *= t_step_scaling;
       sq_error = calculate_sq_error(
-        position_evaluator, t, p, first_deriv, t_step
+        geom_evaluator, t, p, first_deriv, t_step
       );
       found_good_estimate = sq_error < sq_epsilon;
     }
@@ -150,7 +154,7 @@ namespace geom_examples {
     while (stayed_good_estimate && t_step > minimal_delta) {
       t_step *= t_step_scaling;
       const double sq_error = calculate_sq_error(
-        position_evaluator, t, p, first_deriv, t_step
+        geom_evaluator, t, p, first_deriv, t_step
       );
       stayed_good_estimate = sq_error < sq_epsilon;
     }
@@ -167,7 +171,7 @@ namespace geom_examples {
     while (sq_error > sq_epsilon && -t_step > minimal_delta) {
       t_step *= t_step_scaling;
       sq_error = calculate_sq_error(
-        position_evaluator, t, p, first_deriv, t_step
+        geom_evaluator, t, p, first_deriv, t_step
       );
       found_good_estimate = sq_error < sq_epsilon;
     }
@@ -182,7 +186,7 @@ namespace geom_examples {
     while (stayed_good_estimate && -t_step > minimal_delta) {
       t_step *= t_step_scaling;
       const double sq_error = calculate_sq_error(
-        position_evaluator, t, p, first_deriv, t_step
+        geom_evaluator, t, p, first_deriv, t_step
       );
       stayed_good_estimate = sq_error < sq_epsilon;
     }
@@ -199,38 +203,36 @@ namespace geom_examples {
     const Curve& c,
     const double t
   ) {
-    // build a function that provides positions (as vectors!)
-    std::function<Vector(double)> position_evaluator = [&c](double t) -> Vector {
-        Point p = c.evaluate(t);
-        return Vector(p.X(), p.Y(), p.Z()); // TODO avoid ever copying Point to Vector
-    };
-
-    // build a function that provides 1st derivs
-    std::function<Vector(double)> first_deriv_evaluator = [&c](double t) -> Vector {
-        Vector first_deriv;
-        Point p = c.evaluate(t, first_deriv);
-        return first_deriv;
-    };
-
-    // build a function that provides 2nd derivs
-    std::function<Vector(double)> second_deriv_evaluator = [&c](double t) -> Vector {
-        Vector first_deriv, second_deriv;
-        Point p = c.evaluate(t, first_deriv, second_deriv);
-        return second_deriv;
-    };
-
+    bool result = true;
     std::cout << "Test curve derivs at parameter value " << t << "\n";
 
-    bool result = true;
+    std::function<std::pair<Vector, Vector>(double)> position_and_first_deriv_evaluator =
+      [&c](double t) -> std::pair<Vector, Vector> {
+      Vector firstDeriv;
+      Point p = c.evaluate(t, firstDeriv);
+      const Vector v(p.X(), p.Y(), p.Z()); // TODO avoid ever copying Point to Vector
+      return std::make_pair(
+        v, 
+        firstDeriv
+      );
+    };
     result = test_curve_derivs_generic(
-      position_evaluator,
-      first_deriv_evaluator,
+      position_and_first_deriv_evaluator,
       t
     );
+
     if (result) {
+      std::function<std::pair<Vector, Vector>(double)> first_and_second_deriv_evaluator =
+        [&c](double t) -> std::pair<Vector, Vector> {
+        Vector firstDeriv, secondDeriv;
+        Point p = c.evaluate(t, firstDeriv, secondDeriv);
+        return std::make_pair(
+          firstDeriv,
+          secondDeriv
+        );
+      };
       result = test_curve_derivs_generic(
-        first_deriv_evaluator,
-        second_deriv_evaluator,
+        first_and_second_deriv_evaluator,
         t
       );
     }
