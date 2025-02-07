@@ -14,7 +14,11 @@ if(USE_CLOUD)
     
     include_directories(geom_explore)
 
-    add_library(geom_lib geom_explore/geom.cpp)
+    add_library(geom_lib 
+      geom_explore/geom.cpp
+      geom_explore/geom_display.cpp
+      geom_explore/geom_nurbs.cpp
+    )
 
     add_executable(cloud_run_hello cloud_run_hello.cc)
     target_compile_features(cloud_run_hello PRIVATE cxx_std_17)
@@ -70,7 +74,11 @@ else()
     add_library(boost_explore_lib boost_explore/boost_usage.cpp)
     add_library(std_explore_lib std_explore/std_usage.cpp)
     add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
-    add_library(geom_lib geom_explore/geom.cpp)
+    add_library(geom_lib 
+      geom_explore/geom.cpp
+      geom_explore/geom_display.cpp
+      geom_explore/geom_nurbs.cpp
+    )
     add_library(nr_lib nr_explore/gaussj.cpp)
     
     # Add executable target (your main file)
@@ -102,7 +110,7 @@ else()
     )
 
     target_link_libraries(test_geom 
-    PRIVATE Catch2::Catch2WithMain
+      PRIVATE Catch2::Catch2WithMain
               ${Boost_LIBRARIES} 
               geom_lib
               nr_lib

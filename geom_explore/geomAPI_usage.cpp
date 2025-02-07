@@ -8,6 +8,7 @@
 //#include <iomanip>
 //#include <cmath>
 #include "geom.hpp"
+#include "geom_display.hpp"
 
 namespace geomAPI_examples {
 

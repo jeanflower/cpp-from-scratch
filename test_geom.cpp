@@ -1,6 +1,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 #include "geom_explore/geom.hpp"
+#include "geom_explore/geom_display.hpp"
+#include "geom_explore/geom_nurbs.hpp"
 #include <iostream>
 #include <string>
 #include "nr_explore/gaussj.hpp"

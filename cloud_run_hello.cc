@@ -1,6 +1,7 @@
 #include <google/cloud/functions/framework.h>
 #include <cstdlib>
 #include "geom_explore/geom.hpp"
+#include "geom_explore/geom_nurbs.hpp"
 
 namespace gcf = ::google::cloud::functions;
 
@@ -11,7 +12,7 @@ auto hello_world_http() {
     greeting += target == nullptr ? "World" : target;
     greeting += "\n";
 
-    std::string perf_data = geom_examples::nurbs_performance_example();
+    std::string perf_data = geom_examples::nurbsPerformanceExample();
     greeting += perf_data;
     
     return gcf::HttpResponse{}

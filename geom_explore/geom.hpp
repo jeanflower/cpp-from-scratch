@@ -64,27 +64,6 @@ namespace geom_examples {
       ) const override;
   };
 
-
-  constexpr uint32_t RED     = 0xFF0000;
-  constexpr uint32_t GREEN   = 0x00FF00;
-  constexpr uint32_t BLUE    = 0x0000FF;
-  constexpr uint32_t MAGENTA = 0xFF00FF;
-  constexpr uint32_t YELLOW  = 0xFFFF00;
-  constexpr uint32_t CYAN    = 0x00FFFF;
-
-  const int NUM_SAMPLES = 5000;
-  //const int NUM_SAMPLES = 5;
-
-  void addGeometryToView(const std::vector<PtCollection>& pt_colls);
-
-  void writeGeometryToJSON();
-
-  // build a nurbs curve and evaluate it
-  void nurbsExample();
-
-  // build a nurbs curve, do evaluations and add up the time taken
-  std::string nurbsPerformanceExample();
-
   void circleExample();
 
   bool test_curve_derivs();
