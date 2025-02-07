@@ -2,6 +2,9 @@
 # statically-linked, small programs.
 FROM alpine:3.21 AS build
 
+# TODO optimise this Dockerfile so that we don't need to re-fetch
+# reducing build times and build costs
+
 # Install the typical development tools for C++, and
 # the base OS headers and libraries.
 RUN apk update && \
