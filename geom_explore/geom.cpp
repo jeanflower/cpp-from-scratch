@@ -67,13 +67,13 @@ namespace geom_examples {
   }
 
   double calculate_sq_error(
-    const Curve& c,
+    std::function<Vector(double)>& position_evaluator,
     double t,
-    const Point p,
+    const Vector p,
     const Vector& first_deriv,
     double t_step
   ){
-    Point p_nearby = c.evaluate(t + t_step); // above t
+    Vector p_nearby = position_evaluator(t + t_step); // above t
     // std::cout << "p_nearby = " << p_nearby.X() << ", " << p_nearby.Y() << ", " << p_nearby.Z() << "\n";
 
     Vector estimate( // TODO implement subtraction of Point
@@ -94,14 +94,16 @@ namespace geom_examples {
     return sq_error;
   }
 
-  bool test_curve_derivs_at(
-    const Curve& c,
-    const double t
+  // can be used for testing derivatives at any order
+  // being given evaluators for order n and n+1
+  bool test_curve_derivs_generic(
+    std::function<Vector(double)>& position_evaluator,
+    std::function<Vector(double)>& first_deriv_evaluator, // TODO evaluate both together (cheaper)
+    double t
   ) {
-    std::cout << "Test curve derivs at parameter value " << t << "\n";
+    Vector first_deriv = first_deriv_evaluator(t);
+    Vector p = position_evaluator(t);
 
-    Vector first_deriv;
-    Point p = c.evaluate(t, first_deriv);
     //std::cout << "p = " << p.X() << ", " << p.Y() << ", " << p.Z() << "\n";
     //std::cout << "first_deriv = " << first_deriv.X() << ", " << first_deriv.Y() << ", " << first_deriv.Z() << "\n";
 
@@ -130,7 +132,9 @@ namespace geom_examples {
     bool found_good_estimate = false;
     while (sq_error > sq_epsilon && t_step > minimal_delta) {
       t_step *= t_step_scaling;
-      sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      sq_error = calculate_sq_error(
+        position_evaluator, t, p, first_deriv, t_step
+      );
       found_good_estimate = sq_error < sq_epsilon;
     }
 
@@ -143,7 +147,9 @@ namespace geom_examples {
     bool stayed_good_estimate = true;
     while (stayed_good_estimate && t_step > minimal_delta) {
       t_step *= t_step_scaling;
-      const double sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      const double sq_error = calculate_sq_error(
+        position_evaluator, t, p, first_deriv, t_step
+      );
       stayed_good_estimate = sq_error < sq_epsilon;
     }
     if (!stayed_good_estimate) {
@@ -158,7 +164,9 @@ namespace geom_examples {
     found_good_estimate = false;
     while (sq_error > sq_epsilon && -t_step > minimal_delta) {
       t_step *= t_step_scaling;
-      sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      sq_error = calculate_sq_error(
+        position_evaluator, t, p, first_deriv, t_step
+      );
       found_good_estimate = sq_error < sq_epsilon;
     }
 
@@ -171,7 +179,9 @@ namespace geom_examples {
     stayed_good_estimate = true;
     while (stayed_good_estimate && -t_step > minimal_delta) {
       t_step *= t_step_scaling;
-      const double sq_error = calculate_sq_error(c, t, p, first_deriv, t_step);
+      const double sq_error = calculate_sq_error(
+        position_evaluator, t, p, first_deriv, t_step
+      );
       stayed_good_estimate = sq_error < sq_epsilon;
     }
     if (!stayed_good_estimate) {
@@ -181,6 +191,32 @@ namespace geom_examples {
     //std::cout << "kept good estimates to delta = " << t_step << "\n";
 
     return true;
+  }
+
+  bool test_curve_derivs_at(
+    const Curve& c,
+    const double t
+  ) {
+    // build a function that provides positions (as vectors!)
+    std::function<Vector(double)> position_evaluator = [&c](double t) -> Vector {
+        Point p = c.evaluate(t);
+        return Vector(p.X(), p.Y(), p.Z()); // TODO avoid ever copying Point to Vector
+    };
+
+    // build a function that provides 1st derivs
+    std::function<Vector(double)> first_deriv_evaluator = [&c](double t) -> Vector {
+        Vector first_deriv;
+        Point p = c.evaluate(t, first_deriv);
+        return first_deriv;
+    };
+
+    std::cout << "Test curve derivs at parameter value " << t << "\n";
+
+    return test_curve_derivs_generic(
+      position_evaluator,
+      first_deriv_evaluator,
+      t
+    );
   }
 
   bool test_curve_derivs(){
