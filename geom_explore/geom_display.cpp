@@ -138,7 +138,7 @@ namespace geom_examples {
       .isLine = false
     };
     ptsColls.push_back(ptsObj);
-    std::cout << "adding " << ptsObj.pts.size() << " to view\n";
+    // std::cout << "adding " << ptsObj.pts.size() << " to view\n";
     addGeometryToView(ptsColls);
   }
 
@@ -158,7 +158,7 @@ namespace geom_examples {
       .isLine = false
     };
     ptsColls.push_back(ptsObj);
-    std::cout << "adding ()" << p.X() << ", " << p.Y() << ", " << p.Z() << ") to view\n";
+    // std::cout << "adding (" << p.X() << ", " << p.Y() << ", " << p.Z() << ") to view\n";
     addGeometryToView(ptsColls);
   }
 }
