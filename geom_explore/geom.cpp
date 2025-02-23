@@ -11,6 +11,7 @@
 #include "geom_display.hpp"
 #include <functional>
 #include <utility>  // for std::pair
+#include <string>
 
 
 namespace geom_examples {
@@ -323,6 +324,33 @@ namespace geom_examples {
       2 * p.Z() * deriv.Z();
   };
 
+  template <class T>
+  double rtnewt(
+    T &funcd, 
+    const double guess,
+    const double lower_bound_param, 
+    const double upper_bound_param, 
+    const double accuracy_tolerance
+  ) {
+    const int MAX_ITERATIONS = 200;
+    // initial guess
+    double rtn = guess;
+    for (int j = 0; j < MAX_ITERATIONS; j++) {
+      double f = funcd(rtn);
+      double df = funcd.df(rtn);
+      if (df == 0.0) 
+        throw std::runtime_error("df == 0.0 in rtnewt");
+      double dx = f / df;
+      rtn -= dx;
+      // std::cout << "j is " << j << " and rtn is " << rtn << "\n";
+      if ((lower_bound_param - rtn) * (rtn - upper_bound_param) < 0.0)
+        throw std::runtime_error("Jumped out of range in rtnewt after " + std::to_string(j) + " iterations");
+      if (abs(dx) < accuracy_tolerance) 
+        return rtn; 
+    }
+    throw("Maximum number of iterations exceeded in rtnewt");
+  }
+
   void test_distance_sq_fn() {
 
     std::function<void(DistanceSqFromOrigin&, double)> print_vals =
@@ -336,20 +364,20 @@ namespace geom_examples {
     Circle c1(Point(0.0, 0.0, 0.0), 2);
     DistanceSqFromOrigin f1(c1);
   
-    print_vals(f1, 0);
-    print_vals(f1, 3);
+    //print_vals(f1, 0);
+    //print_vals(f1, 3);
 
-    Circle c2(Point(1.0, 0.0, 0.0), 2);
+    Circle c2(Point(1.0, 2.0, 0.0), sqrt(5.0));
     DistanceSqFromOrigin f2(c2);
   
-    print_vals(f2, 0);
-    print_vals(f2, 3);
+    //print_vals(f2, 0);
+    //print_vals(f2, 3);
 
     Circle c3(Point(1.0, 2.0, 3.0), sqrt(14.0));
     DistanceSqFromOrigin f3(c3);
   
-    print_vals(f2, 0);
-    print_vals(f2, 3);
+    //print_vals(f2, 0);
+    //print_vals(f2, 3);
 
     addCurveToView(Line(Point(0,0,0), Vector(1,0,0)), 0.0, 1.0, RED, 1);
     addCurveToView(Line(Point(0,0,0), Vector(0,1,0)), 0.0, 1.0, GREEN, 1);
@@ -362,6 +390,228 @@ namespace geom_examples {
     // e.g. we might highlight a 'closest point'
     addPointToView(Point(2, 0, 0), YELLOW, 7);
 
+    // f1 doesn't have a zero - don't expect NR to converge
+    try {
+      double newtonResult = rtnewt(f1, M_PI, -100.0 * M_PI, 100.0 * M_PI, 1e-6);
+      std::cout << "Unepected newtonResult = " << newtonResult << "\n";
+    } catch (const std::runtime_error& e) {
+      std::cerr << "As expeced for f1, get an error: " << e.what() << std::endl;
+    } catch (const char* msg) {
+      std::cerr << "As expeced for f1, get an error: " << msg << std::endl;
+    } catch (...) {
+      std::cerr << "Unknown exception caught!" << std::endl;
+    }
+
+    // f2 does have a zero - expect NR to converge
+    for (int j = 0; j < 10; j++) {
+      try {
+        double guess = j * 0.1 * 2 * M_PI;
+        std::cout << "newtonResult on f2 from guess " << guess << " ";
+        double newtonResult = rtnewt(f2, guess, -100.0 * M_PI, 100.0 * M_PI, 1e-6);
+        std::cout << newtonResult << "\n";
+      } catch (const std::runtime_error& e) {
+        std::cerr << "Unexpected for f2, get an error: " << e.what() << std::endl;
+        } catch (const char* msg) {
+        std::cerr << "Unexpected for f2, error: " << msg << std::endl;
+      } catch (...) {
+        std::cerr << "Unknown exception caught!" << std::endl;
+      }
+    }
+
     geom_examples::writeGeometryToJSON();
   }
+
+  template <class T>
+  struct ComplexNumber {
+    T x, y;
+
+    // Constructor
+    ComplexNumber(T x = 0, T y = 0);
+
+    // Getter functions
+    T X() const;
+    T Y() const;
+
+    T len_sq() const;
+  };
+
+  template <class T>
+  ComplexNumber<T>::ComplexNumber(T x, T y) : x(x), y(y) {}
+
+  template <class T>
+  T ComplexNumber<T>::X() const { return x; }
+  template <class T>
+  T ComplexNumber<T>::Y() const { return y; }
+
+  template <class T>
+  T ComplexNumber<T>::len_sq() const { return x * x + y * y; }
+
+  template <class T>
+  ComplexNumber<T> operator+(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
+    return ComplexNumber(a.x + b.x, a.y + b.y);
+  }
+
+  template <class T>
+  ComplexNumber<T> operator-(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
+    return ComplexNumber(a.x - b.x, a.y - b.y);
+  }
+
+  template <class T>
+  ComplexNumber<T> operator*(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
+    return ComplexNumber(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+  }
+
+  template <class T>
+  class ComplexFunctionExample {
+    public:
+      explicit ComplexFunctionExample() {};
+
+      ComplexNumber<T> operator() (const ComplexNumber<T> z) {
+        return ComplexNumber<T>(
+          z.X() * z.X() * z.X() - 3 * z.X() * z.Y() * z.Y() - 1,
+          3 * z.X() * z.X() * z.Y() - z.Y() * z.Y() * z.Y()
+        );
+      }
+      ComplexNumber<T> dfx(const ComplexNumber<T> x) {
+        return ComplexNumber<T>(
+          3 * x.X() * x.X() - 3 * x.Y() * x.Y(),
+          -6 * x.X() * x.Y()
+        );
+      }
+      ComplexNumber<T> dfy(const ComplexNumber<T> x) {
+        return ComplexNumber<T>(
+          6 * x.X() * x.Y(),
+          3 * x.X() * x.X() - 3 * x.Y() * x.Y()
+        );
+      }
+  };
+
+  template <class T, class F>
+  ComplexNumber<T> complex_newt(
+    F &funcd, 
+    ComplexNumber<T>& guess,
+    const T lower_bound_x, 
+    const T upper_bound_x, 
+    const T lower_bound_y, 
+    const T upper_bound_y, 
+    const T accuracy_tolerance,
+    const int MAX_ITERATIONS = 200
+  ) {
+    const double accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
+    ComplexNumber<T> rtn = guess;
+    for (int j = 0; j < MAX_ITERATIONS; j++) {
+      ComplexNumber<T> f = funcd(rtn);
+      ComplexNumber<T> dfx = funcd.dfx(rtn);
+      ComplexNumber<T> dfy = funcd.dfy(rtn);
+
+      double det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
+      if(det == 0) {
+          throw std::runtime_error("Zero derivative determinant in complex_newt");
+      }
+      
+      double step_x = ( f.X() * dfy.Y() - f.Y() * dfx.Y() ) / det;
+      double step_y = ( f.Y() * dfx.X() - f.X() * dfy.X() ) / det;
+      ComplexNumber<T> step(step_x, step_y);
+
+      rtn = rtn - step;
+
+      // std::cout << "j is " << j << " and rtn is " << rtn.X() << ", " << rtn.Y() << "\n";
+      if ((lower_bound_x - rtn.X()) * (rtn.X() - upper_bound_x) < 0.0 ||
+        (lower_bound_y - rtn.Y()) * (rtn.Y() - upper_bound_y) < 0.0)
+        throw("Jumped out of range in complex_newt");
+      if (step.len_sq() < accuracy_tolerance_sq) {
+        // std::cout << "Converged to " << rtn.X() << ", " << rtn.Y() << " after " << j << " iterations\n";
+        return rtn; 
+      }
+    }
+    throw("Maximum number of iterations exceeded in complex_newt");
+  }
+
+  template <class T>
+  bool complexNRConverges(
+    ComplexFunctionExample<T>& f,
+    ComplexNumber<T>& guess
+  ) {
+    try {
+      ComplexNumber<T> start = guess;
+
+      //std::cout << "newtonResult on f from guess " << start.X() << " + i * " << start.Y() << "\n";
+      ComplexNumber<T> newtonResult = complex_newt<T>(
+        f, 
+        start,
+        -100.0, 100.0, 
+        -100.0, 100.0, 
+        1e-10,
+        100
+      );
+      //std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
+
+      if (abs(newtonResult.X() - 1.0) < 0.1 && abs(newtonResult.Y() - 0.0) < 0.1) {
+        // we converged on the root of interest
+        return true;
+      } else {
+        return false;
+      }
+
+    } catch (const char* msg) {
+      //std::cerr << "Error: " << msg << std::endl;
+    } catch (...) {
+      //std::cerr << "Unknown exception caught!" << std::endl;
+    }
+    return false;
+  }
+
+  void fractal() {
+
+    std::vector<Point> ptsConverged;
+    std::vector<Point> ptsNotConverged;
+
+    ComplexFunctionExample f = ComplexFunctionExample<long double>();
+    const int NUM_I = 100;
+    const int NUM_J = 100;
+    const long double LOW_X = -2.0;
+    const long double HIGH_X = 2.0;
+    const long double LOW_Y = -2.0;
+    const long double HIGH_Y = 2.0;
+    for (int i = 0; i < NUM_I; i++) {
+      for (int j = 0; j < NUM_J; j++) {
+
+        ComplexNumber<long double> start(
+          LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
+          LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j 
+        );
+
+        bool converged = complexNRConverges(f, start);
+        //std::cout << start.X() << " + i * " << start.Y();
+        if (converged) {
+          //std::cout << " Converged\n";
+          ptsConverged.push_back(Point(start.X(), start.Y(), 0));
+          // std::cout << "+";
+        } else {
+          //std::cout << " Did not converge\n";
+          ptsNotConverged.push_back(Point(start.X(), start.Y(), 0));
+          // std::cout << "-";
+        }
+      }
+    }
+
+    std::vector<PtCollection> ptsColls;
+    PtCollection ptsObjConverged ={
+      .displaySize = 1,
+      .color = BLACK,
+      .pts = ptsConverged,
+      .isLine = false
+    };
+    ptsColls.push_back(ptsObjConverged);
+    PtCollection ptsObjNotConverged ={
+      .displaySize = 1,
+      .color = WHITE,
+      .pts = ptsNotConverged,
+      .isLine = false
+    };
+    ptsColls.push_back(ptsObjNotConverged);
+    // std::cout << "adding " << ptsObj.pts.size() << " to view\n";
+    addGeometryToView(ptsColls);
+  }
+
 }

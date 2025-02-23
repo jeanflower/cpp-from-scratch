@@ -105,4 +105,6 @@ namespace geom_examples {
   };
 
   void test_distance_sq_fn();
+
+  void fractal();
 }

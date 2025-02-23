@@ -10,7 +10,9 @@ int main() {
   //geomAPI_examples::sphereExample();
   //geomAPI_examples::torusExample();
   //geom_examples::nurbsExample();
-  geom_examples::test_distance_sq_fn();
+  //geom_examples::test_distance_sq_fn();
+
+  geom_examples::fractal();
 
   geom_examples::writeGeometryToJSON();
 
