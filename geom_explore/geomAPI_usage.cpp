@@ -32,6 +32,7 @@ namespace geomAPI_examples {
     std::transform(pt_uvs.begin(), pt_uvs.end(), pts_to_display.begin(), eval_surface);
 
     pts_colls.push_back({
+      .displaySize = 1,
       .color = geom_examples::CYAN,
       .pts = pts_to_display,
       .isLine = false
@@ -41,6 +42,7 @@ namespace geomAPI_examples {
       std::vector<geom_examples::Point> line_vertices(uvs.size());
       std::transform(uvs.begin(), uvs.end(), line_vertices.begin(), eval_surface);
       pts_colls.push_back({
+        .displaySize = 1,
         .color = geom_examples::YELLOW,
         .pts = line_vertices,
         .isLine = true
@@ -51,6 +53,7 @@ namespace geomAPI_examples {
       std::vector<geom_examples::Point> line_vertices(uvs.size());
       std::transform(uvs.begin(), uvs.end(), line_vertices.begin(), eval_surface);
       pts_colls.push_back({
+        .displaySize = 1,
         .color = geom_examples::RED,
         .pts = line_vertices,
         .isLine = true

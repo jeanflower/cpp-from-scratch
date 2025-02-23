@@ -395,6 +395,7 @@ namespace geom_examples {
     }
     std::vector<PtCollection> ptsColls;
     PtCollection ptsObj ={
+      .displaySize = 1,
       .color = GREEN,
       .pts = ptsToDisplay,
       .isLine = false

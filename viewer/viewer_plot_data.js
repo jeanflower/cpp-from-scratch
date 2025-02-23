@@ -53,8 +53,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Add orbit controls for interactivity
-new OrbitControls(camera, renderer.domElement)
-
+// Create and store OrbitControls in a variable
+const controls = new OrbitControls(camera, renderer.domElement);
 function fitCameraToScene() {
   const box = new THREE.Box3();
   const tempBox = new THREE.Box3();
@@ -110,12 +110,29 @@ function fitCameraToScene() {
       camera.bottom = -(frustumSize / aspect) / 2;
     }
 
-    camera.near = -maxDim * 2;
-    camera.far = maxDim * 2;
+    // TODO understand why I needed a +- 50 here
+    camera.near = Math.min(box.min.x, box.min.y, box.min.z) - 50;
+    camera.far  = Math.max(box.max.x, box.max.y, box.max.z) + 50;
+
+    // console.log(`box = ${JSON.stringify(box)}`);
+    // console.log(`center = ${JSON.stringify(center)}`);
+    // console.log(`size = ${JSON.stringify(size)}`);
+    // console.log(`maxDim = ${JSON.stringify(maxDim)}`);
+    // console.log(`camera.left = ${JSON.stringify(camera.left)}`);
+    // console.log(`camera.right = ${JSON.stringify(camera.right)}`);
+    // console.log(`camera.top = ${JSON.stringify(camera.top)}`);
+    // console.log(`camera.bottom = ${JSON.stringify(camera.bottom)}`);
+    // console.log(`camera.near = ${JSON.stringify(camera.near)}`);
+    // console.log(`camera.far = ${JSON.stringify(camera.far)}`);
+
     camera.updateProjectionMatrix();
   }
 
   camera.lookAt(center);
+
+  // **Update OrbitControls target so it doesn't jump when interacting**
+  controls.target.copy(center);
+  controls.update();
 }
 
 // Parse the XYZ data from the JSON file
@@ -126,74 +143,6 @@ fetch("output/view_data.json")
       }
     )
     .then(data => {
-
-        let minX, minY, minZ, maxX, maxY, maxZ;
-        data.ptsGps.map((ptsObj) => {
-          ptsObj.pts.map((d) => {
-            if (minX === undefined) {
-              minX = d.x;
-              minY = d.y;
-              minZ = d.z;
-              maxX = d.x;
-              maxY = d.y;
-              maxZ = d.z;
-              return;
-            }
-            if (d.x < minX) {
-              minX = d.x;
-            }
-            if (d.y < minY) {
-              minY = d.z;
-            }
-            if (d.z < minZ) {
-              minZ = d.y;
-            }
-            if (d.x > maxX) {
-              maxX = d.x;
-            }
-            if (d.y > maxY) {
-              maxY = d.z;
-            }
-            if (d.z > maxZ) {
-              maxZ = d.y;
-            }
-          })
-        });
-        data.linesObjs.map((linesObj) => {
-          linesObj.vxs.map((d) => {
-            if (minX === undefined) {
-              minX = d.x;
-              minY = d.y;
-              minZ = d.z;
-              maxX = d.x;
-              maxY = d.y;
-              maxZ = d.z;
-              return;
-            }
-            if (d.x < minX) {
-              minX = d.x;
-            }
-            if (d.y < minY) {
-              minY = d.z;
-            }
-            if (d.z < minZ) {
-              minZ = d.y;
-            }
-            if (d.x > maxX) {
-              maxX = d.x;
-            }
-            if (d.y > maxY) {
-              maxY = d.z;
-            }
-            if (d.z > maxZ) {
-              maxZ = d.y;
-            }
-          })
-        });
-
-        const biggestDim = Math.max(maxX - minX, Math.max(maxY - minY, maxZ - minZ));
-        const displaySize = biggestDim / 700;
-        // console.log(`displaySize = ${displaySize}`);
 
         // display a ptsObj (which contains pts data and color)
         data.ptsGps.map((ptsObj) => {
@@ -210,7 +159,8 @@ fetch("output/view_data.json")
           // Create a material for the points
           const material = new THREE.PointsMaterial({ 
             color: col, 
-            size: displaySize
+            size: ptsObj.displaySize,
+            sizeAttenuation: false  // displaySize is interpreted as pixels.
           });
           const pointCloud = new THREE.Points(geometry, material);
           // Add the points to the scene
@@ -229,7 +179,9 @@ fetch("output/view_data.json")
 
           const material = new MeshLineMaterial({
             color: new THREE.Color(linesObj.color),
-            lineWidth: displaySize,
+            lineWidth: ptsObj.displaySize,
+            sizeAttenuation: false,  // displaySize is interpreted as pixels.
+            resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
           });
 
           const mesh = new THREE.Mesh(line, material);

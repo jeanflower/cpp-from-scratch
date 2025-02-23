@@ -27,14 +27,62 @@ namespace geom_examples {
   double Vector::Y() const { return y; }
   double Vector::Z() const { return z; }
 
-  Circle::Circle(double r) : radius(r) {}
+  Line::Line(
+    Point start,
+    Vector direction
+  ) : start(start), direction(direction) {}
+
+  Point Line::evaluate(
+    double t, 
+    std::optional<std::reference_wrapper<Vector>> first_derivative, 
+    std::optional<std::reference_wrapper<Vector>> second_derivative
+  ) const {
+    Point p{
+      start.X() + t * direction.X(), 
+      start.Y() + t * direction.Y(), 
+      start.Z() + t * direction.Z() 
+    };
+
+    if (first_derivative.has_value()) {
+      first_derivative->get().x = direction.X();
+      first_derivative->get().y = direction.Y();
+      first_derivative->get().z = direction.Z();
+    }
+
+    if (second_derivative.has_value()) {
+      second_derivative->get().x = 0;
+      second_derivative->get().y = 0;
+      second_derivative->get().z = 0;
+    }
+
+    // deliberately break the evaluator to test our tests!!
+    //if (t == 1000.0) { // terrible way to pick out a t
+    //  p.x = 88; // nonsense value to return
+    //}
+    //if (t == 1000.0 && first_derivative.has_value()) { // terrible way to pick out a t
+    //  first_derivative->get().x = 88; // nonsense value to return
+    //}
+    //if (t == 1000.0 && second_derivative.has_value()) { // terrible way to pick out a t
+    //  second_derivative->get().x = 88; // nonsense value to return
+    //}
+    return p;
+  }
+
+  Circle::Circle(
+    Point origin,
+    double r
+  ) : origin(origin), radius(r) {}
 
   Point Circle::evaluate(
     double t, 
     std::optional<std::reference_wrapper<Vector>> first_derivative, 
     std::optional<std::reference_wrapper<Vector>> second_derivative
   ) const {
-    Point p{radius * cos(t), radius * sin(t)};      
+    Point p{
+      origin.X() + radius * cos(t), 
+      origin.Y() + radius * sin(t),
+      origin.Z()
+    };
 
     if (first_derivative.has_value()) {
       first_derivative->get().x = -radius * sin(t);
@@ -60,7 +108,7 @@ namespace geom_examples {
   }
   
   void circleExample() {
-    Circle c(5.0);
+    Circle c(Point(0.0, 0.0, 0.0), 5.0);
     double t = 1.0;
 
     Vector first, second;
@@ -242,7 +290,7 @@ namespace geom_examples {
   bool test_curve_derivs(){
 
     // select a curve
-    const Circle c(12.0);
+    const Circle c(Point(0.0, 0.0, 0.0), 12.0);
 
     // select values of t to analyse for derivative accuracy    
     bool result = true;
@@ -257,5 +305,63 @@ namespace geom_examples {
     }
 
     return result;
+  }
+
+  double DistanceSqFromOrigin::operator() (const double t) {
+    Point p = c.evaluate(t);
+    return 
+      p.X() * p.X() +
+      p.Y() * p.Y() +
+      p.Z() * p.Z();
+  };
+  double DistanceSqFromOrigin::df(const double t) {
+    Vector deriv;
+    Point p = c.evaluate(t, deriv);
+    return
+      2 * p.X() * deriv.X() +
+      2 * p.Y() * deriv.Y() +
+      2 * p.Z() * deriv.Z();
+  };
+
+  void test_distance_sq_fn() {
+
+    std::function<void(DistanceSqFromOrigin&, double)> print_vals =
+      [](DistanceSqFromOrigin& f, double t) -> void {
+        const double val = f(t);
+        const double dval = f.df(t);
+    
+        std::cout << "distance from O at " << t << " is " << val << " and df is " << dval << "\n";
+      };
+
+    Circle c1(Point(0.0, 0.0, 0.0), 2);
+    DistanceSqFromOrigin f1(c1);
+  
+    print_vals(f1, 0);
+    print_vals(f1, 3);
+
+    Circle c2(Point(1.0, 0.0, 0.0), 2);
+    DistanceSqFromOrigin f2(c2);
+  
+    print_vals(f2, 0);
+    print_vals(f2, 3);
+
+    Circle c3(Point(1.0, 2.0, 3.0), sqrt(14.0));
+    DistanceSqFromOrigin f3(c3);
+  
+    print_vals(f2, 0);
+    print_vals(f2, 3);
+
+    addCurveToView(Line(Point(0,0,0), Vector(1,0,0)), 0.0, 1.0, RED, 1);
+    addCurveToView(Line(Point(0,0,0), Vector(0,1,0)), 0.0, 1.0, GREEN, 1);
+    addCurveToView(Line(Point(0,0,0), Vector(0,0,1)), 0.0, 1.0, BLUE, 1);
+
+    addCurveToView(c1, 0.0, 2*M_PI, GREEN, 2);
+    addCurveToView(c2, 0.0, 2*M_PI, RED, 2);
+    addCurveToView(c3, 0.0, 2*M_PI, BLUE, 2);
+
+    // e.g. we might highlight a 'closest point'
+    addPointToView(Point(2, 0, 0), YELLOW, 7);
+
+    geom_examples::writeGeometryToJSON();
   }
 }

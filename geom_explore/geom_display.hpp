@@ -21,4 +21,18 @@ namespace geom_examples {
   void addGeometryToView(const std::vector<PtCollection>& pt_colls);
 
   void writeGeometryToJSON();
+
+  void addCurveToView(
+    const Curve& c,
+    double start_t,
+    double end_t,
+    uint32_t color,
+    int displaySize
+  );
+
+  void addPointToView(
+    const Point& p,
+    uint32_t color,
+    int displaySize
+  );
 }

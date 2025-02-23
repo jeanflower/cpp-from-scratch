@@ -32,7 +32,8 @@ namespace geom_examples {
   };
 
   struct PtCollection {
-    int color;
+    uint32_t color;
+    int displaySize;
     std::vector<Point> pts;
     bool isLine;
   };
@@ -50,14 +51,33 @@ namespace geom_examples {
       virtual ~Curve() = default;
   };
 
+  class Line : public Curve {
+    private:
+      Point start;
+      Vector direction;
+
+    public:
+      explicit Line(
+        Point start,
+        Vector direction
+      );
+
+      Point evaluate(  
+        double t, 
+        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
+        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
+      ) const override;
+  };
+
   class Circle : public Curve {
     private:
+      Point origin;
       double radius;
 
     public:
-      explicit Circle(double r);
+      explicit Circle(Point origin, double r);
 
-      Point evaluate(
+      Point evaluate(  
         double t, 
         std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
         std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
@@ -67,4 +87,22 @@ namespace geom_examples {
   void circleExample();
 
   bool test_curve_derivs();
+
+  class Funcd {
+    virtual double operator() (const double x) = 0;
+    virtual double df(const double x) = 0;
+  };
+
+  class DistanceSqFromOrigin: Funcd {
+    private:
+      Curve& c;
+
+    public:
+      explicit DistanceSqFromOrigin(Circle& c) : c(c) {};
+
+      double operator() (const double x) override;
+      double df(const double x) override;
+  };
+
+  void test_distance_sq_fn();
 }
