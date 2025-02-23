@@ -14,6 +14,8 @@ namespace geom_examples {
   constexpr uint32_t MAGENTA = 0xFF00FF;
   constexpr uint32_t YELLOW  = 0xFFFF00;
   constexpr uint32_t CYAN    = 0x00FFFF;
+  constexpr uint32_t WHITE   = 0xFFFFFF;
+  constexpr uint32_t BLACK    = 0x000000;
 
   const int NUM_SAMPLES = 5000;
   //const int NUM_SAMPLES = 5;
