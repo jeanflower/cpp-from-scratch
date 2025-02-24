@@ -24,17 +24,23 @@ namespace geom_examples {
   double Point::Y() const { return y; }
   double Point::Z() const { return z; }
 
+  // Define a 3D vector structure - same as a Point in terms of data but
+  // in a context, means something different
   Vector::Vector(double x, double y, double z) : x(x), y(y), z(z) {}
 
   double Vector::X() const { return x; }
   double Vector::Y() const { return y; }
   double Vector::Z() const { return z; }
 
+  // Define a Line in 3d space from a start point
+  // parameterised along a given direction
+  // the length of the direction vector provides the parameterisation
   Line::Line(
     Point start,
     Vector direction
   ) : start(start), direction(direction) {}
 
+  // A Line can be evaluated and provide its derivatives
   Point Line::evaluate(
     double t, 
     std::optional<std::reference_wrapper<Vector>> first_derivative, 
@@ -71,20 +77,23 @@ namespace geom_examples {
     return p;
   }
 
+  // A Circle curve centered at the given center, with given radius
+  // it always falls in the x/y plane and is parameterised in the same way
   Circle::Circle(
-    Point origin,
+    Point center,
     double r
-  ) : origin(origin), radius(r) {}
+  ) : center(center), radius(r) {}
 
+  // A Circle can be evaluated and provide its derivatives
   Point Circle::evaluate(
     double t, 
     std::optional<std::reference_wrapper<Vector>> first_derivative, 
     std::optional<std::reference_wrapper<Vector>> second_derivative
   ) const {
     Point p{
-      origin.X() + radius * cos(t), 
-      origin.Y() + radius * sin(t),
-      origin.Z()
+      center.X() + radius * cos(t), 
+      center.Y() + radius * sin(t),
+      center.Z()
     };
 
     if (first_derivative.has_value()) {
@@ -110,6 +119,7 @@ namespace geom_examples {
     return p;
   }
   
+  // Build a circle object and evaluate it
   void circleExample() {
     Circle c(Point(0.0, 0.0, 0.0), 5.0);
     double t = 1.0;
@@ -122,6 +132,10 @@ namespace geom_examples {
     std::cout << "Second Derivative: (" << second.x << ", " << second.y << ")\n";
   }
 
+  // Compare the error between the geometry evaluated at t+dt
+  // and the prediction based on the geometry at t and the derivative
+  // giving an approximation of the geometry at t+dt
+  // This function is used to validate the evaluated derivatives
   double calculate_sq_error(
     std::function<std::pair<Vector, Vector>(double)>& geom_evaluator,
     double t,
@@ -151,7 +165,7 @@ namespace geom_examples {
     return sq_error;
   }
 
-  // can be used for testing derivatives at any order
+  // Can be used for testing derivatives at any order
   // being given evaluators for order n and n+1
   bool test_curve_derivs_generic(
     std::function<std::pair<Vector, Vector>(double)>& geom_evaluator,
@@ -290,6 +304,8 @@ namespace geom_examples {
     return result;
   }
 
+  // We'd expect this to pass unless we 'nobble' the Circle evaluators
+  // to intentionally return bad values for specific parameter values
   bool test_curve_derivs(){
 
     // select a curve
@@ -310,6 +326,9 @@ namespace geom_examples {
     return result;
   }
 
+  // We might seek the closest point to the origin...
+  // or solve for where a curve passes through the origin
+  // this creates a function of one variable returning one number
   double DistanceSqFromOrigin::operator() (const double t) {
     Point p = c.evaluate(t);
     return 
@@ -326,6 +345,7 @@ namespace geom_examples {
       2 * p.Z() * deriv.Z();
   };
 
+  // Newton Raphson seeks a root of a function of one variable
   template <class T>
   double rtnewt(
     T &funcd, 
@@ -353,6 +373,9 @@ namespace geom_examples {
     throw("Maximum number of iterations exceeded in rtnewt");
   }
 
+  // This function builds some curves and uses Newton Raphson to seek
+  // a point where those curves pass through the origin.
+  // Examples may or may not converge.
   void test_distance_sq_fn() {
 
     std::function<void(DistanceSqFromOrigin&, double)> print_vals =
@@ -423,6 +446,8 @@ namespace geom_examples {
     geom_examples::writeGeometryToJSON();
   }
 
+  // A function of two variables uses (x,y)
+  // and a function of a complex variable uses x+iy
   template <class T>
   struct Coords2D {
     T x, y;
@@ -453,7 +478,8 @@ namespace geom_examples {
     return Coords2D(a.x - b.x, a.y - b.y);
   }
 
-
+  // A certain kind of cubic function of two real values
+  // inspired by the complex function z^3 - 1
   template <class T>
   class CubicFunction {
     public:
@@ -530,6 +556,8 @@ namespace geom_examples {
         }
   };
 
+  // Seek a root of a function of two variables
+  // Templatise so that we can explore floats, doubles, long doubles
   template <class T, class F>
   Coords2D<T> newtonRaphson2Dinput(
     F &funcd, 
@@ -539,7 +567,7 @@ namespace geom_examples {
     const T lower_bound_y, 
     const T upper_bound_y, 
     const T accuracy_tolerance,
-    const int MAX_ITERATIONS = 200
+    const int MAX_ITERATIONS
   ) {
     const double accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
     Coords2D<T> rtn = guess;
@@ -571,8 +599,14 @@ namespace geom_examples {
     throw("Maximum number of iterations exceeded in newtonRaphson2Dinput");
   }
 
+  // Assess whether the 2D Newton Raphson converges for a given function f
+  // starting from a given guess.
+  // Return a number which says which of the knownSolutions convergence gave
+  // or one more if we didn't converge to a known solution.
+  // e..g. provide 3 known roots, and this can return 0, 1 or 2 for convergence to a known root
+  // and 4 for convergence somewhere else or failure to converge.
   template <class T>
-  int complexNRConverges(
+  int NR2DConverges(
     CubicFunction<T>& f,
     Coords2D<T>& guess,
     T accuracy_tolerance,
@@ -611,10 +645,17 @@ namespace geom_examples {
     return false;
   }
 
+  // Assess whether the 2D Newton Raphson converges for a given function f
+  // starting from a range of guesses in the given low/high ranges.
+
+  // Return a collection of Coords2D for guesses which converge to each of known solutions.
+  // e..g. provide 3 known roots, and this can return 
+  // - three collections of Coords2D which for convergence to a known root
+  // - and 4th collection of Coords2D which converge somewhere else or fail to converge.
   template<class T>
   void assessConvergence(
     CubicFunction<T> f,
-    std::vector<std::vector<Point>>& ptsData,
+    std::vector<std::vector<Coords2D<T>>>& ptsData,
     int NUM_I, 
     int NUM_J, 
     T LOW_X, 
@@ -627,7 +668,7 @@ namespace geom_examples {
 
     // Lambda that processes a block of rows (i values)
     auto process_range = [&](int start_i, int end_i) {
-      std::vector<std::vector<Point>> localPtsData(4);
+      std::vector<std::vector<Coords2D<T>>> localPtsData(4);
 
       for (int i = start_i; i < end_i; i++) {
         for (int j = 0; j < NUM_J; j++) {
@@ -635,13 +676,13 @@ namespace geom_examples {
             LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
             LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
           );
-          int converged = complexNRConverges<T>(
+          int converged = NR2DConverges<T>(
             f, 
             start,
             accuracy_tolerance,
             f.roots
           );
-          localPtsData[converged].push_back(Point(start.X(), start.Y(), 0));
+          localPtsData[converged].push_back(start);
         }
       }
       // Merge local results into the global vectors with locking
@@ -668,6 +709,7 @@ namespace geom_examples {
     }    
   }
 
+  // Given collections of Points, assign different colors and add them to the viewables
   void addPtsToView(
     std::vector<std::vector<Point>>& ptsData,
     int displaySize
@@ -694,6 +736,7 @@ namespace geom_examples {
     addGeometryToView(ptsColls);    
   }
 
+  // An example of a function of two variables
   template<class T>
   CubicFunction<T> zCubedMinus1 = CubicFunction<T>(
     // "z^3-1",
@@ -708,6 +751,7 @@ namespace geom_examples {
     }
   );
 
+  // An example of a function of two variables
   template<class T>
   CubicFunction<T> zCubedMinusi = CubicFunction<T>(
     // "z^3-i",
@@ -758,7 +802,8 @@ namespace geom_examples {
 
     // each known root will create a region of a different colour
     // with an additional region for non-convergent initial points
-    std::vector<std::vector<Point>> ptsData(f.roots.size() + 1);
+    std::vector<std::vector<Coords2D<float>>> ptsData(f.roots.size() + 1);
+
     assessConvergence(
       f,
       ptsData,
@@ -767,7 +812,17 @@ namespace geom_examples {
       accuracy_tolerance
     );
 
-    addPtsToView(ptsData, displaySize);
-  }
+    std::vector<std::vector<Point>> pts_to_display(f.roots.size() + 1);
 
+    for (int i = 0; i < ptsData.size(); i++) {
+      pts_to_display[i].resize(ptsData[i].size());
+      auto f = [](Coords2D<float> pt) { return Point(pt.X(), pt.Y(), 0.0); };
+
+      std::transform(ptsData[i].begin(), ptsData[i].end(), pts_to_display[i].begin(), f);
+
+      std::cout << "pts_to_display[" << i << "].size() = " << pts_to_display[i].size() << "\n";
+    }
+
+    addPtsToView(pts_to_display, displaySize);
+  }
 }

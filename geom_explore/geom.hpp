@@ -71,11 +71,11 @@ namespace geom_examples {
 
   class Circle : public Curve {
     private:
-      Point origin;
+      Point center;
       double radius;
 
     public:
-      explicit Circle(Point origin, double r);
+      explicit Circle(Point center, double r);
 
       Point evaluate(  
         double t, 
