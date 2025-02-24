@@ -12,7 +12,9 @@
 #include <functional>
 #include <utility>  // for std::pair
 #include <string>
-
+#include <vector>
+#include <mutex>
+#include <thread>
 
 namespace geom_examples {
   // Define a 3D point structure
@@ -422,74 +424,116 @@ namespace geom_examples {
   }
 
   template <class T>
-  struct ComplexNumber {
+  struct Coords2D {
     T x, y;
 
     // Constructor
-    ComplexNumber(T x = 0, T y = 0);
+    Coords2D(T x = 0, T y = 0);
 
     // Getter functions
     T X() const;
     T Y() const;
-
-    T len_sq() const;
   };
 
   template <class T>
-  ComplexNumber<T>::ComplexNumber(T x, T y) : x(x), y(y) {}
+  Coords2D<T>::Coords2D(T x, T y) : x(x), y(y) {}
 
   template <class T>
-  T ComplexNumber<T>::X() const { return x; }
+  T Coords2D<T>::X() const { return x; }
   template <class T>
-  T ComplexNumber<T>::Y() const { return y; }
+  T Coords2D<T>::Y() const { return y; }
 
   template <class T>
-  T ComplexNumber<T>::len_sq() const { return x * x + y * y; }
-
-  template <class T>
-  ComplexNumber<T> operator+(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
-    return ComplexNumber(a.x + b.x, a.y + b.y);
+  Coords2D<T> operator+(const Coords2D<T>& a, const Coords2D<T>& b) {
+    return Coords2D(a.x + b.x, a.y + b.y);
   }
 
   template <class T>
-  ComplexNumber<T> operator-(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
-    return ComplexNumber(a.x - b.x, a.y - b.y);
+  Coords2D<T> operator-(const Coords2D<T>& a, const Coords2D<T>& b) {
+    return Coords2D(a.x - b.x, a.y - b.y);
   }
 
-  template <class T>
-  ComplexNumber<T> operator*(const ComplexNumber<T>& a, const ComplexNumber<T>& b) {
-    return ComplexNumber(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
-  }
 
   template <class T>
-  class ComplexFunctionExample {
+  class CubicFunction {
     public:
-      explicit ComplexFunctionExample() {};
+      explicit CubicFunction(
+        std::vector<T> coeffs,
+        std::vector<Coords2D<T>> roots
+      ) {
+        this->roots = roots;
+        // ax^3 + bx^2y + cxy^2 + dy^3 + e
+        // fx^3 + gx^2y + hxy^2 + iy^3 + j
+        a = coeffs[0]; 
+        b = coeffs[1]; 
+        c = coeffs[2];
+        d = coeffs[3];
+        e = coeffs[4];
+        f = coeffs[5];
+        g = coeffs[6];
+        h = coeffs[7];
+        i = coeffs[8];
+        j = coeffs[9];
+      }
 
-      ComplexNumber<T> operator() (const ComplexNumber<T> z) {
-        return ComplexNumber<T>(
-          z.X() * z.X() * z.X() - 3 * z.X() * z.Y() * z.Y() - 1,
-          3 * z.X() * z.X() * z.Y() - z.Y() * z.Y() * z.Y()
-        );
-      }
-      ComplexNumber<T> dfx(const ComplexNumber<T> x) {
-        return ComplexNumber<T>(
-          3 * x.X() * x.X() - 3 * x.Y() * x.Y(),
-          -6 * x.X() * x.Y()
-        );
-      }
-      ComplexNumber<T> dfy(const ComplexNumber<T> x) {
-        return ComplexNumber<T>(
-          6 * x.X() * x.Y(),
-          3 * x.X() * x.X() - 3 * x.Y() * x.Y()
-        );
-      }
+      std::vector<Coords2D<T>> roots;
+
+      private: 
+        // coefficients of the cubic polynomial
+        T a = 0.0, b = 0.0, c = 0.0, d = 0.0;
+        T e = 0.0;
+
+        T f = 0.0, g = 0.0, h = 0.0, i = 0.0;
+        T j = 0.0;
+
+      public: 
+
+        // expand a cubic polynomial
+        Coords2D<T> operator() (const Coords2D<T>& z) {
+          return Coords2D<T>(          
+              a * z.X() * z.X() * z.X() // a = 1    1 * z.X() * z.X() * z.X()
+            + b * z.X() * z.X() * z.Y() // b = 0    0
+            + c * z.X() * z.Y() * z.Y() // c = -3  -3 * z.X() * z.Y() * z.Y()
+            + d * z.Y() * z.Y() * z.Y() // d = 0    0
+            + e,                        // e = -1  -1
+              f * z.X() * z.X() * z.X() // f = 0    0
+            + g * z.X() * z.X() * z.Y() // g = 3    3 * z.X() * z.X() * z.Y()
+            + h * z.X() * z.Y() * z.Y() // h = 0    0
+            + i * z.Y() * z.Y() * z.Y() // i = -1   -1 * z.Y() * z.Y() * z.Y()
+            + j                         // j = 0    0
+          );
+        }
+        // derivative of a cubic polynomial
+        Coords2D<T> dfx(const Coords2D<T>& z) {
+          return Coords2D<T>(
+              3 * a * z.X() * z.X() // a = 1    1 * 3 * z.X() * z.X()
+            + 2 * b * z.X() * z.Y() // b = 0    0
+            +     c * z.Y() * z.Y() // c = -3   -3 * z.Y() * z.Y()
+            ,
+              3 * f * z.X() * z.X() // f = 0    0
+            + 2 * g * z.X() * z.Y() // g = 3    2 * 3 * z.X() * z.Y()
+            +     h * z.Y() * z.Y() // h = 0    0
+          );
+        }
+        // derivative of a cubic polynomial
+        Coords2D<T> dfy(const Coords2D<T>& z) {
+          return Coords2D<T>(
+
+                  b * z.X() * z.X() // b = 0    0
+            + 2 * c * z.X() * z.Y() // c = -3   -6 * z.X() * z.Y()
+            + 3 * d * z.Y() * z.Y() // d = 0    0
+            ,
+                  g * z.X() * z.X() // g = 3    3 * z.X() * z.X()
+            + 2 * h * z.X() * z.Y() // h = 0    0
+            + 3 * i * z.Y() * z.Y() // i = -1   -1 * 3 * z.Y() * z.Y()
+          );
+        }
   };
 
   template <class T, class F>
-  ComplexNumber<T> complex_newt(
+  Coords2D<T> newtonRaphson2Dinput(
     F &funcd, 
-    ComplexNumber<T>& guess,
+    Coords2D<T>& guess,
     const T lower_bound_x, 
     const T upper_bound_x, 
     const T lower_bound_y, 
@@ -498,60 +542,66 @@ namespace geom_examples {
     const int MAX_ITERATIONS = 200
   ) {
     const double accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
-    ComplexNumber<T> rtn = guess;
+    Coords2D<T> rtn = guess;
     for (int j = 0; j < MAX_ITERATIONS; j++) {
-      ComplexNumber<T> f = funcd(rtn);
-      ComplexNumber<T> dfx = funcd.dfx(rtn);
-      ComplexNumber<T> dfy = funcd.dfy(rtn);
+      Coords2D<T> f = funcd(rtn);
+      Coords2D<T> dfx = funcd.dfx(rtn);
+      Coords2D<T> dfy = funcd.dfy(rtn);
 
       double det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
       if(det == 0) {
           throw std::runtime_error("Zero derivative determinant in complex_newt");
       }
       
-      double step_x = ( f.X() * dfy.Y() - f.Y() * dfx.Y() ) / det;
-      double step_y = ( f.Y() * dfx.X() - f.X() * dfy.X() ) / det;
-      ComplexNumber<T> step(step_x, step_y);
+      double step_x = ( f.X() * dfy.Y() + f.Y() * dfx.Y() ) / det;
+      double step_y = ( f.Y() * dfx.X() + f.X() * dfy.X() ) / det;
+      Coords2D<T> step(step_x, step_y);
 
       rtn = rtn - step;
 
       // std::cout << "j is " << j << " and rtn is " << rtn.X() << ", " << rtn.Y() << "\n";
       if ((lower_bound_x - rtn.X()) * (rtn.X() - upper_bound_x) < 0.0 ||
         (lower_bound_y - rtn.Y()) * (rtn.Y() - upper_bound_y) < 0.0)
-        throw("Jumped out of range in complex_newt");
-      if (step.len_sq() < accuracy_tolerance_sq) {
+        throw("Jumped out of range in newtonRaphson2Dinput");
+      if (step.X() * step.X() + step.Y() * step.Y() < accuracy_tolerance_sq) {
         // std::cout << "Converged to " << rtn.X() << ", " << rtn.Y() << " after " << j << " iterations\n";
         return rtn; 
       }
     }
-    throw("Maximum number of iterations exceeded in complex_newt");
+    throw("Maximum number of iterations exceeded in newtonRaphson2Dinput");
   }
 
   template <class T>
-  bool complexNRConverges(
-    ComplexFunctionExample<T>& f,
-    ComplexNumber<T>& guess
+  int complexNRConverges(
+    CubicFunction<T>& f,
+    Coords2D<T>& guess,
+    T accuracy_tolerance,
+    const std::vector<Coords2D<T>>& knownSolutions
   ) {
     try {
-      ComplexNumber<T> start = guess;
+      Coords2D<T> start = guess;
 
       //std::cout << "newtonResult on f from guess " << start.X() << " + i * " << start.Y() << "\n";
-      ComplexNumber<T> newtonResult = complex_newt<T>(
+      Coords2D<T> newtonResult = newtonRaphson2Dinput<T>(
         f, 
         start,
         -100.0, 100.0, 
         -100.0, 100.0, 
-        1e-10,
+        accuracy_tolerance,
         100
       );
       //std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
 
-      if (abs(newtonResult.X() - 1.0) < 0.1 && abs(newtonResult.Y() - 0.0) < 0.1) {
-        // we converged on the root of interest
-        return true;
-      } else {
-        return false;
+      for (int i = 0; i < knownSolutions.size(); i++) {
+        const Coords2D<T>& knownSoln = knownSolutions[i];
+        if (abs(newtonResult.X() - knownSoln.X()) < 0.1 
+         && abs(newtonResult.Y() - knownSoln.Y()) < 1e-6) {
+          // std::cout << "Converged to " << newtonResult.X() << " + i * " << newtonResult.Y() << " on root " << i << "\n";  
+          // we converged on the root of interest
+          return i;
+        }
       }
+      return knownSolutions.size();
 
     } catch (const char* msg) {
       //std::cerr << "Error: " << msg << std::endl;
@@ -561,57 +611,163 @@ namespace geom_examples {
     return false;
   }
 
-  void fractal() {
+  template<class T>
+  void assessConvergence(
+    CubicFunction<T> f,
+    std::vector<std::vector<Point>>& ptsData,
+    int NUM_I, 
+    int NUM_J, 
+    T LOW_X, 
+    T HIGH_X, 
+    T LOW_Y, 
+    T HIGH_Y,
+    T accuracy_tolerance
+  ) {
+    std::mutex mtx; // protects access to ptsConverged and ptsNotConverged
 
-    std::vector<Point> ptsConverged;
-    std::vector<Point> ptsNotConverged;
+    // Lambda that processes a block of rows (i values)
+    auto process_range = [&](int start_i, int end_i) {
+      std::vector<std::vector<Point>> localPtsData(4);
 
-    ComplexFunctionExample f = ComplexFunctionExample<long double>();
-    const int NUM_I = 100;
-    const int NUM_J = 100;
-    const long double LOW_X = -2.0;
-    const long double HIGH_X = 2.0;
-    const long double LOW_Y = -2.0;
-    const long double HIGH_Y = 2.0;
-    for (int i = 0; i < NUM_I; i++) {
-      for (int j = 0; j < NUM_J; j++) {
-
-        ComplexNumber<long double> start(
-          LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
-          LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j 
-        );
-
-        bool converged = complexNRConverges(f, start);
-        //std::cout << start.X() << " + i * " << start.Y();
-        if (converged) {
-          //std::cout << " Converged\n";
-          ptsConverged.push_back(Point(start.X(), start.Y(), 0));
-          // std::cout << "+";
-        } else {
-          //std::cout << " Did not converge\n";
-          ptsNotConverged.push_back(Point(start.X(), start.Y(), 0));
-          // std::cout << "-";
+      for (int i = start_i; i < end_i; i++) {
+        for (int j = 0; j < NUM_J; j++) {
+          Coords2D<T> start(
+            LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
+            LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
+          );
+          int converged = complexNRConverges<T>(
+            f, 
+            start,
+            accuracy_tolerance,
+            f.roots
+          );
+          localPtsData[converged].push_back(Point(start.X(), start.Y(), 0));
         }
       }
+      // Merge local results into the global vectors with locking
+      std::lock_guard<std::mutex> lock(mtx);
+      for (int i = 0; i < 4; i++) {
+        ptsData[i].insert(ptsData[i].end(), localPtsData[i].begin(), localPtsData[i].end());
+      }
+    };
+
+    // Determine the number of threads available.
+    unsigned int numThreads = std::thread::hardware_concurrency();
+    if (numThreads == 0) { numThreads = 2; } // Fallback in case hardware_concurrency returns 0
+
+    std::vector<std::thread> threads;
+    int range = NUM_I / numThreads;
+    for (unsigned int t = 0; t < numThreads; t++) {
+      int start_i = t * range;
+      int end_i = (t == numThreads - 1) ? NUM_I : start_i + range;
+      threads.emplace_back(process_range, start_i, end_i);
+    }
+    // Join all threads.
+    for (auto &th : threads) {
+      th.join();
+    }    
+  }
+
+  void addPtsToView(
+    std::vector<std::vector<Point>>& ptsData,
+    int displaySize
+  ){
+    std::vector<PtCollection> ptsColls;
+
+    std::vector<uint32_t> colors = {
+      geom_examples::RED, 
+      geom_examples::GREEN, 
+      geom_examples::BLUE, 
+      geom_examples::YELLOW
+    };
+    for (int i = 0; i < 4; i++) {
+      PtCollection ptsObj = {
+        .displaySize = displaySize,
+        .color = colors[i],
+        .pts = ptsData[i],
+        .isLine = false
+      };
+      ptsColls.push_back(ptsObj);
     }
 
-    std::vector<PtCollection> ptsColls;
-    PtCollection ptsObjConverged ={
-      .displaySize = 1,
-      .color = BLACK,
-      .pts = ptsConverged,
-      .isLine = false
-    };
-    ptsColls.push_back(ptsObjConverged);
-    PtCollection ptsObjNotConverged ={
-      .displaySize = 1,
-      .color = WHITE,
-      .pts = ptsNotConverged,
-      .isLine = false
-    };
-    ptsColls.push_back(ptsObjNotConverged);
     // std::cout << "adding " << ptsObj.pts.size() << " to view\n";
-    addGeometryToView(ptsColls);
+    addGeometryToView(ptsColls);    
+  }
+
+  template<class T>
+  CubicFunction<T> zCubedMinus1 = CubicFunction<T>(
+    // "z^3-1",
+    { 
+      1, 0, -3, 0, -1, 
+      0, 3, 0, -1, 0
+    },
+    std::vector<Coords2D<T>>{
+      Coords2D<T>(1, 0),
+      Coords2D<T>(-0.5, sqrt(3) / 2),
+      Coords2D<T>(-0.5, -sqrt(3) / 2)
+    }
+  );
+
+  template<class T>
+  CubicFunction<T> zCubedMinusi = CubicFunction<T>(
+    // "z^3-i",
+    { 
+      1, 0, -3, 0, 0, 
+      0, 3, 0, -1, -1
+    },
+    std::vector<Coords2D<T>>{
+      Coords2D<T>(0, -1),
+      Coords2D<T>( sqrt(3) / 2, 0.5),
+      Coords2D<T>(-sqrt(3) / 2, 0.5)
+    }
+  );
+
+  void fractal() {
+    const int NUM_I = 1500;
+    const int NUM_J = 1500;
+
+    const int displaySize = 1;
+
+    CubicFunction<float> f = zCubedMinus1<float>;
+    const float LOW_X = -1.5;
+    const float HIGH_X = 1.5;
+    const float LOW_Y = -1.5;
+    const float HIGH_Y = 1.5;
+    const float accuracy_tolerance = 1e-2; // spectacular image!
+
+    //CubicFunction<double> f = zCubedMinus1<double>;
+    //const double LOW_X = -1.5;
+    //const double HIGH_X = 1.5;
+    //const double LOW_Y = -1.5;
+    //const double HIGH_Y = 1.5;
+    //const double accuracy_tolerance = 1e-6;
+
+    //CubicFunction<long double> f = zCubedMinus1<long double>;
+    //const long double LOW_X = -1.5;
+    //const long double HIGH_X = 1.5;
+    //const long double LOW_Y = -1.5;
+    //const long double HIGH_Y = 1.5;
+    //const long double accuracy_tolerance = 1e-6;
+
+    //CubicFunction<long double> f = zCubedMinusi<long double>;
+    //const long double LOW_X = -1.5;
+    //const long double HIGH_X = 1.5;
+    //const long double LOW_Y = -1.5;
+    //const long double HIGH_Y = 1.5;
+    //const long double accuracy_tolerance = 1e-6;
+
+    // each known root will create a region of a different colour
+    // with an additional region for non-convergent initial points
+    std::vector<std::vector<Point>> ptsData(f.roots.size() + 1);
+    assessConvergence(
+      f,
+      ptsData,
+      NUM_I, NUM_J, 
+      LOW_X, HIGH_X, LOW_Y, HIGH_Y,
+      accuracy_tolerance
+    );
+
+    addPtsToView(ptsData, displaySize);
   }
 
 }

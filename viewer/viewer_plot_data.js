@@ -147,6 +147,10 @@ fetch("output/view_data.json")
         // display a ptsObj (which contains pts data and color)
         data.ptsGps.map((ptsObj) => {
           console.log('processing a ptsObj');
+          if (ptsObj.pts.length === 0) {
+            console.log('ptsObj has no points');
+            return;
+          }
           const col = ptsObj.color;
           // console.log(`col = ${col}`);
 
