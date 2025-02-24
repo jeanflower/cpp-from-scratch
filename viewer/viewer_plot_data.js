@@ -179,7 +179,7 @@ fetch("output/view_data.json")
 
           const material = new MeshLineMaterial({
             color: new THREE.Color(linesObj.color),
-            lineWidth: ptsObj.displaySize,
+            lineWidth: linesObj.displaySize,
             sizeAttenuation: false,  // displaySize is interpreted as pixels.
             resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
           });
