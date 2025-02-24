@@ -777,7 +777,7 @@ namespace geom_examples {
     const float HIGH_X = 1.5;
     const float LOW_Y = -1.5;
     const float HIGH_Y = 1.5;
-    const float accuracy_tolerance = 1e-2; // spectacular image!
+    const float accuracy_tolerance = 0.003; // spectacular image!
 
     //CubicFunction<double> f = zCubedMinus1<double>;
     //const double LOW_X = -1.5;
