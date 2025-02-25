@@ -576,13 +576,27 @@ namespace geom_examples {
       Coords2D<T> dfx = funcd.dfx(rtn);
       Coords2D<T> dfy = funcd.dfy(rtn);
 
+      // Newton's rule
+      // F is a column vector F_x, F_y
+      // Jacobian J is a 2x2 matrix
+      // ( d/dx F_x    d/dy F_x)
+      // ( d/dx F_y    d/dy F_y)
+      // x_new = x_old - J^{-1}F
+      //
+      // J^{-1} = 1/(det J) * ( d/dy F_y    -d/dy F_x)
+      //                      (-d/dx F_y     d/dx F_x)
+      // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
+      //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
+      // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
+      //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
+
       double det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
       if(det == 0) {
           throw std::runtime_error("Zero derivative determinant in complex_newt");
       }
       
-      double step_x = ( f.X() * dfy.Y() + f.Y() * dfx.Y() ) / det;
-      double step_y = ( f.Y() * dfx.X() + f.X() * dfy.X() ) / det;
+      double step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
+      double step_y = ( - dfx.Y() * f.X() + dfx.X() * f.Y() ) / det;
       Coords2D<T> step(step_x, step_y);
 
       rtn = rtn - step;
