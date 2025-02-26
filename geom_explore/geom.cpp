@@ -356,19 +356,19 @@ namespace geom_examples {
   ) {
     const int MAX_ITERATIONS = 200;
     // initial guess
-    double rtn = guess;
+    double rootEstimate = guess;
     for (int j = 0; j < MAX_ITERATIONS; j++) {
-      double f = funcd(rtn);
-      double df = funcd.df(rtn);
+      double f = funcd(rootEstimate);
+      double df = funcd.df(rootEstimate);
       if (df == 0.0) 
         throw std::runtime_error("df == 0.0 in rtnewt");
       double dx = f / df;
-      rtn -= dx;
-      // std::cout << "j is " << j << " and rtn is " << rtn << "\n";
-      if ((lower_bound_param - rtn) * (rtn - upper_bound_param) < 0.0)
+      rootEstimate -= dx;
+      // std::cout << "j is " << j << " and rootEstimate is " << rootEstimate << "\n";
+      if ((lower_bound_param - rootEstimate) * (rootEstimate - upper_bound_param) < 0.0)
         throw std::runtime_error("Jumped out of range in rtnewt after " + std::to_string(j) + " iterations");
       if (abs(dx) < accuracy_tolerance) 
-        return rtn; 
+        return rootEstimate; 
     }
     throw("Maximum number of iterations exceeded in rtnewt");
   }
@@ -556,25 +556,23 @@ namespace geom_examples {
         }
   };
 
-  // Seek a root of a function of two variables
-  // Templatise so that we can explore floats, doubles, long doubles
-  template <class T, class F>
-  Coords2D<T> newtonRaphson2Dinput(
-    F &funcd, 
-    Coords2D<T>& guess,
-    const T lower_bound_x, 
-    const T upper_bound_x, 
-    const T lower_bound_y, 
-    const T upper_bound_y, 
-    const T accuracy_tolerance,
-    const int MAX_ITERATIONS
-  ) {
-    const double accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
-    Coords2D<T> rtn = guess;
-    for (int j = 0; j < MAX_ITERATIONS; j++) {
-      Coords2D<T> f = funcd(rtn);
-      Coords2D<T> dfx = funcd.dfx(rtn);
-      Coords2D<T> dfy = funcd.dfy(rtn);
+  template <
+    class numType,    // float, double, long double
+    class inputT,     // Coords2D<numType>
+    class outputT,    // Coords2D<numType>
+    class F           // CubicFunction<numType>
+  >
+  class StepFinder2D2D {
+    public: 
+
+    inputT findStep(
+      F &funcd, 
+      const inputT& rootEstimate
+    ) {
+      bool printDebug = false;
+      outputT f = funcd(rootEstimate);
+      outputT dfx = funcd.dfx(rootEstimate);
+      outputT dfy = funcd.dfy(rootEstimate);
 
       // Newton's rule
       // F is a column vector F_x, F_y
@@ -594,23 +592,86 @@ namespace geom_examples {
       if(det == 0) {
           throw std::runtime_error("Zero derivative determinant in complex_newt");
       }
-      
+
       double step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
+      if (printDebug) {
+        std::cout << "  dfy.Y() * f.X() is   " << dfy.Y() << " * " << f.X() << "\n";
+        std::cout << "- dfy.X() * f.Y() is - " << dfy.X() << " * " << f.Y() << "\n";
+        std::cout << "step_x is " << step_x << "\n";
+      }
+
       double step_y = ( - dfx.Y() * f.X() + dfx.X() * f.Y() ) / det;
-      Coords2D<T> step(step_x, step_y);
+      if (printDebug) {
+        std::cout << "- dfx.Y() * f.X() is - " << dfx.Y() << " * " << f.X() << "\n";
+        std::cout << "  dfx.X() * f.Y() is   " << dfx.X() << " * " << f.Y() << "\n";
+        std::cout << "step_y is " << step_y << "\n";
+      }
 
-      rtn = rtn - step;
+      inputT step(step_x, step_y);
+      return step;
+    }
+  };
 
-      // std::cout << "j is " << j << " and rtn is " << rtn.X() << ", " << rtn.Y() << "\n";
-      if ((lower_bound_x - rtn.X()) * (rtn.X() - upper_bound_x) < 0.0 ||
-        (lower_bound_y - rtn.Y()) * (rtn.Y() - upper_bound_y) < 0.0)
-        throw("Jumped out of range in newtonRaphson2Dinput");
+  // Seek a root of a function of two variables
+  // Templatise so that we can explore floats, doubles, long doubles
+  template <
+    class numType,    // float, double, long double
+    class inputT,     // Coords2D<numType>
+    class outputT,    // Coords2D<numType>
+    class F,          // CubicFunction<numType>
+    class StepFinder = StepFinder2D2D<numType, inputT, outputT, F>
+  >
+  inputT newtonRaphson(
+    F &funcd, // needs operator(), dfx(), dfy() all returning T
+    StepFinder stepFinder,
+    inputT& guess,
+    const inputT lower_bound, 
+    const inputT upper_bound, 
+    const numType accuracy_tolerance,
+    const int MAX_ITERATIONS
+  ) {
+    const bool printDebug = false;
+    const numType accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
+    inputT rootEstimate = guess;
+    for (int j = 0; j < MAX_ITERATIONS; j++) {
+
+      inputT step = stepFinder.findStep(funcd, rootEstimate);
+
+      if (printDebug) {
+        std::cout << "step is " << step.X() << ", " << step.Y() << "\n";
+      }
+      rootEstimate = rootEstimate - step;
+
+      if (printDebug) {
+        std::cout << "j is " << j << " and rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
+      }
+
+      // this uses X() and Y(), needs to be flexible to accommodate Z() too
+      if ((lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) < 0.0 ||
+          (lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) < 0.0) {
+        if (printDebug) {
+          std::cout << "lower_bound is " << lower_bound.X() << ", " << lower_bound.Y() << "\n";
+          std::cout << "upper_bound is " << upper_bound.X() << ", " << upper_bound.Y() << "\n";
+          std::cout << "rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
+          std::cout << "(lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) = "
+            << (lower_bound.X() - rootEstimate.X()) << " * " << (rootEstimate.X() - upper_bound.X()) << " = "
+            << (lower_bound.X() - rootEstimate.X()) *  (rootEstimate.X() - upper_bound.X()) << "\n";
+          std::cout << "(lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) = "
+            << (lower_bound.Y() - rootEstimate.Y()) << " * " << (rootEstimate.Y() - upper_bound.Y()) << " = "
+            << (lower_bound.Y() - rootEstimate.Y()) *  (rootEstimate.Y() - upper_bound.Y()) << "\n";
+        }
+        throw("Jumped out of range in newtonRaphson");
+      }
+
+      // this uses X() and Y(), needs to be flexible to accommodate Z() too
       if (step.X() * step.X() + step.Y() * step.Y() < accuracy_tolerance_sq) {
-        // std::cout << "Converged to " << rtn.X() << ", " << rtn.Y() << " after " << j << " iterations\n";
-        return rtn; 
+        if (printDebug) {
+          std::cout << "Converged to " << rootEstimate.X() << ", " << rootEstimate.Y() << " after " << j << " iterations\n";
+        }
+        return rootEstimate; 
       }
     }
-    throw("Maximum number of iterations exceeded in newtonRaphson2Dinput");
+    throw("Maximum number of iterations exceeded in newtonRaphson");
   }
 
   // Assess whether the 2D Newton Raphson converges for a given function f
@@ -627,21 +688,29 @@ namespace geom_examples {
     const std::vector<Coords2D<T>>& knownSolutions
   ) {
     try {
-      Coords2D<T> start = guess;
+      using InputType = Coords2D<T>;
+      using OutputType = Coords2D<T>;
+      InputType start = guess;
 
       //std::cout << "newtonResult on f from guess " << start.X() << " + i * " << start.Y() << "\n";
-      Coords2D<T> newtonResult = newtonRaphson2Dinput<T>(
-        f, 
+      Coords2D<T> newtonResult = newtonRaphson<
+        T,
+        InputType,
+        OutputType,
+        CubicFunction<T>
+      >(
+        f,
+        StepFinder2D2D<T, InputType, OutputType, CubicFunction<T>>(),
         start,
-        -100.0, 100.0, 
-        -100.0, 100.0, 
+        InputType(-100.0, -100.0), 
+        InputType(100.0, 100.0), 
         accuracy_tolerance,
         100
       );
       //std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
 
       for (int i = 0; i < knownSolutions.size(); i++) {
-        const Coords2D<T>& knownSoln = knownSolutions[i];
+        const InputType& knownSoln = knownSolutions[i];
         if (abs(newtonResult.X() - knownSoln.X()) < 0.1 
          && abs(newtonResult.Y() - knownSoln.Y()) < 1e-6) {
           // std::cout << "Converged to " << newtonResult.X() << " + i * " << newtonResult.Y() << " on root " << i << "\n";  
@@ -779,6 +848,209 @@ namespace geom_examples {
       Coords2D<T>(-sqrt(3) / 2, 0.5)
     }
   );
+
+
+  class CurveDifference {
+    private:
+      Curve& c1;
+      Curve& c2;
+    public:
+      using InputType = Coords2D<double>; // think parameter-pair (s, t)
+      using OutputType = Coords2D<double>; // think space position (x, y)
+      explicit CurveDifference(Curve& c1, Curve& c2)
+        : c1(c1), c2(c2) 
+        { }
+
+        OutputType operator() (const InputType& z) {
+        Point pos1 = c1.evaluate(z.X());
+        Point pos2 = c2.evaluate(z.Y()); 
+
+        return OutputType(
+          pos1.X() - pos2.X(),
+          pos1.Y() - pos2.Y()
+        );
+      }
+      OutputType dfx(const InputType& z) {
+        Vector first1;
+        c1.evaluate(z.X(), first1);
+
+        return OutputType(
+          first1.X(),
+          first1.Y()
+        );
+      }
+      OutputType dfy(const InputType& z) {
+        Vector first2;
+        c2.evaluate(z.Y(), first2);
+
+        return OutputType(
+          -first2.X(),
+          -first2.Y()
+        );
+      }
+  };
+
+  void nrZCubedMinus1() {
+    // function of a complex variable f(z) = z^3 - 1
+    // expect convergence if closeish to one of three roots, other convergence
+    // from other starting points behaves in a fractal-like way
+
+    using InputType = Coords2D<float>;
+    using OutputType = Coords2D<float>;
+    using FunctionType = CubicFunction<float>;
+
+    InputType startZCubedMinus1 = InputType(0, -1);
+    Coords2D<float> newtonResultzCubedMinus1 = newtonRaphson<
+      float,
+      InputType,
+      OutputType,
+      FunctionType
+    >(
+      zCubedMinus1<float>, 
+      StepFinder2D2D<float, InputType, OutputType, FunctionType>(),
+      startZCubedMinus1,
+      Coords2D<float>(-100.0, -100.0), 
+      Coords2D<float>(100.0, 100.0), 
+      1e-3,
+      100
+    );
+
+    std::cout << "z^3 - 1 starting from " <<  startZCubedMinus1.X() << ", " << startZCubedMinus1.Y() << " yielded " 
+      << newtonResultzCubedMinus1.X() << ", " << newtonResultzCubedMinus1.Y() << "\n";
+  }
+
+  void intersectAxes() {
+
+    using InputType = Coords2D<double>;
+    using OutputType = Coords2D<double>;
+    using FunctionType = CurveDifference;
+        
+    InputType start = InputType(0, -1);
+    // function representing the difference between two axes
+    // expect (immediate) convergence to the origin
+    Line xaxis(Point(0,0,0), Vector(1,0,0));
+    Line yaxis(Point(0,0,0), Vector(0,1,0));
+    CurveDifference axesDifference(xaxis, yaxis);
+
+    InputType newtonResult = newtonRaphson<
+      double,
+      InputType,
+      OutputType,
+      FunctionType
+    >(
+      axesDifference, 
+      StepFinder2D2D<double, InputType, OutputType, FunctionType>(),
+      start,
+      InputType(-100.0, -100.0), 
+      InputType(100.0, 100.0), 
+      1e-3,
+      100
+    );
+    std::cout << "axesDifference starting from " <<  start.X() << ", " << start.Y() << " yielded " 
+      << newtonResult.X() << ", " << newtonResult.Y() << "\n";
+  }
+
+  Point intersect2DCurves(
+    Curve& c1, 
+    Curve& c2,
+    Coords2D<double>& start
+  ) {
+
+    using InputType = Coords2D<double>;
+    using OutputType = Coords2D<double>;
+    using FunctionType = CurveDifference;
+
+    // function representing the difference between two lines
+    // expect (immediate) convergence to their intersection
+    CurveDifference diff(c1, c2);
+
+    //Double2DCoords startAxes = Double2DCoords(0, -1);
+    InputType newtonResultl1l2 = newtonRaphson<
+      double,
+      InputType,
+      OutputType,
+      FunctionType
+    >(
+      diff, 
+      StepFinder2D2D<double, InputType, OutputType, FunctionType>(),
+      start,
+      InputType(-100.0, -100.0), 
+      InputType(100.0, 100.0), 
+      1e-3,
+      100
+    );
+    std::cout << "diff starting from " <<  start.X() << ", " << start.Y() << " yielded " 
+      << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
+
+    Point onC1 = c1.evaluate(newtonResultl1l2.X());
+    Point onC2 = c2.evaluate(newtonResultl1l2.Y());
+
+    std::cout << "onL1 = " <<  onC1.X() << ", " << onC1.Y() << "\n";
+    std::cout << "onL2 = " <<  onC2.X() << ", " << onC2.Y() << "\n";
+
+    return onC1; // TOO MUCH TO DO - what if we want to return onC2? Convergence fails?
+  }
+
+  void intersectLines() {
+    Line l1(Point(1,2,0), Vector(1,1,0));
+    Line l2(Point(22,11,0), Vector(2,1,0));
+    Coords2D<double> start = Coords2D<double>(0, -1);
+
+    intersect2DCurves(
+      l1,
+      l2,
+      start
+    );
+  }
+
+  Point intersectCircles() {
+
+    Circle c1(Point(0.0, 0.0, 0.0), 2);
+    Circle c2(Point(1.0, 2.0, 0.0), sqrt(5.0));
+    Coords2D<double> start = Coords2D<double>(0, -1);
+
+    addCurveToView(c1, 0.0, 2*M_PI, GREEN, 2);
+    addCurveToView(c2, 0.0, 2*M_PI, RED, 2);
+
+    Point onC1 = intersect2DCurves(
+      c1,
+      c2,
+      start
+    );
+
+    addPointToView(onC1, YELLOW, 7);
+  }
+
+  void testNewtonRaphson2Dinput(){
+
+    try {
+      nrZCubedMinus1();
+
+      Line xaxis(Point(0,0,0), Vector(1,0,0));
+      Line yaxis(Point(0,0,0), Vector(0,1,0));
+      Line zaxis(Point(0,0,0), Vector(0,0,1));
+  
+      addCurveToView(xaxis, 0.0, 1.0, RED, 2);
+      addCurveToView(yaxis, 0.0, 1.0, GREEN, 2);
+      addCurveToView(zaxis, 0.0, 1.0, BLUE, 2);
+
+      intersectAxes();    // should find (0,0)
+      intersectLines();   // should converge immediately
+      intersectCircles(); // a more intereseting case
+
+      //Circle c3(Point(1.0, 2.0, 3.0), sqrt(14.0));
+      //addCurveToView(c3, 0.0, 2*M_PI, BLUE, 2);
+
+    } catch (const std::runtime_error& e) {
+      std::cerr << "testNewtonRaphson2Dinput threw an error: " << e.what() << std::endl;
+    } catch (const char* msg) {
+      std::cerr << "testNewtonRaphson2Dinput threw an error: " << msg << std::endl;
+    } catch (...) {
+      std::cerr << "testNewtonRaphson2Dinput threw an Unknown exception caught!" << std::endl;
+    }        
+
+  }
+
 
   void fractal() {
     const int NUM_I = 1500;

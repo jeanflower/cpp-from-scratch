@@ -12,7 +12,10 @@ int main() {
   //geom_examples::nurbsExample();
   //geom_examples::test_distance_sq_fn();
 
-  geom_examples::fractal();
+  geom_examples::testNewtonRaphson2Dinput();
+
+  // run this with the viewer open to see a plot
+  // geom_examples::fractal();
 
   geom_examples::writeGeometryToJSON();
 
