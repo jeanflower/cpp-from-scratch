@@ -20,6 +20,8 @@ if(USE_CLOUD)
       geom_explore/geom_nurbs.cpp
     )
 
+    add_library(nr_lib nr_explore/gaussj.cpp)
+    
     add_executable(cloud_run_hello cloud_run_hello.cc)
     target_compile_features(cloud_run_hello PRIVATE cxx_std_17)
     target_link_libraries(cloud_run_hello 
@@ -27,6 +29,11 @@ if(USE_CLOUD)
       geom_lib
     )
     
+    # Link libraries
+    target_link_libraries(geom_lib 
+        PRIVATE nr_lib
+    )
+
     include(GNUInstallDirs)
     install(TARGETS cloud_run_hello RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     
@@ -67,7 +74,7 @@ else()
     include_directories(geom_explore)
     include_directories(geomAPI_explore)
     include_directories(nr_explore)
-    
+        
     link_directories(${OpenCASCADE_LIBRARY_DIR})
     
     # Add the source files
@@ -77,7 +84,7 @@ else()
     add_library(geom_lib 
       geom_explore/geom.cpp
       geom_explore/geom_display.cpp
-      geom_explore/geom_nurbs.cpp
+      geom_explore/geom_nurbs.cpp      
     )
     add_library(nr_lib nr_explore/gaussj.cpp)
     
@@ -88,7 +95,11 @@ else()
     add_executable(test_main test_main.cpp)
     add_executable(test_geom test_geom.cpp)
     
-    # Link external libraries to main
+    # Link libraries
+    target_link_libraries(geom_lib 
+        PRIVATE nr_lib
+    )
+
     target_link_libraries(main 
         PRIVATE ${Boost_LIBRARIES} 
                 TKernel TKMath TKGeomBase TKGeomAlgo

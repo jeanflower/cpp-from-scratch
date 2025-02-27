@@ -14,7 +14,7 @@ namespace geomAPI_examples {
 
   std::string formatValue(double value, double threshold = 1e-12, int precision = 6) {
     std::ostringstream stream;
-    stream << std::fixed << std::setprecision(precision) << value;
+    stream << std::fixed << std::setprecision(precision) << value << std::defaultfloat;
     return stream.str();  // Return the formatted value as a string
   }
 

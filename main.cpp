@@ -12,11 +12,15 @@ int main() {
   //geom_examples::nurbsExample();
   //geom_examples::test_distance_sq_fn();
 
-  geom_examples::testNewtonRaphson2Dinput();
+  //geom_examples::testNewtonRaphson2Dinput();
+  geom_examples::testNewtonRaphson3Dinput();
 
   // run this with the viewer open to see a plot
-  // geom_examples::fractal();
+  // beautiful and interesting for performance comparisons
+  //geom_examples::fractal();
 
+  // writs any accumulated geometry to a JSON file
+  // which the viewer can read
   geom_examples::writeGeometryToJSON();
 
   return 0;

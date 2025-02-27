@@ -5,15 +5,17 @@
 
 namespace nr_explore{
 
-  void SWAP(double& a, double& b) {
-      const double c = a;
+  template<class T>
+  void SWAP(T& a, T& b) {
+      const T c = a;
       a = b;
       b = c;
   }
 
   // inputs should be same-size square matrices
-  void printOne(
-    const std::vector<std::vector<double>> &a
+  template<class T>
+  void printMatrix(
+    const std::vector<std::vector<T>> &a
    ) {
     std::cout << std::fixed << std::setprecision(6) << std::setw(5);
     for (int i = 0; i < a.size(); i++) {
@@ -24,11 +26,14 @@ namespace nr_explore{
     }
     std::cout << std::defaultfloat;
   }
- 
+  template void printMatrix<double>(const std::vector<std::vector<double>> &);
+  template void printMatrix<float>(const std::vector<std::vector<float>> &);
+
   // inputs should be same-size square matrices
-  void printTwo(
-    const std::vector<std::vector<double>> &a, 
-    const std::vector<std::vector<double>> &b
+  template<class T>
+  void printMatrices(
+    const std::vector<std::vector<T>> &a, 
+    const std::vector<std::vector<T>> &b
   ) {
     std::cout << std::fixed << std::setprecision(6) << std::setw(5);
     std::cout << "\ta\t";
@@ -48,6 +53,18 @@ namespace nr_explore{
       std::cout << "\n";
     }
     std::cout << std::defaultfloat;
+  }
+  template void printMatrices<double>(
+    const std::vector<std::vector<double>> &,
+    const std::vector<std::vector<double>> &
+  );
+  template void printMatrices<float>(
+    const std::vector<std::vector<float>> &,
+    const std::vector<std::vector<float>> &
+  );
+
+  void testFunc(){
+    std::cout << "hello\n";
   }
 
   // a is n rows by m cols, b is m rows by k cols, output is resized accordingly
@@ -88,17 +105,18 @@ namespace nr_explore{
     }
   }
 
+  template<class T>
   void gaussj( // on p44 of my NR book
   // Linear equation solution by Gauss-Jordan elimination, 
   // The input matrix is a[0..n-1][0..n-1]. b[0..n-1][0..m-1] is input 
   // containing the m right-hand side vectors. On output, a is replaced by its 
   // matrix inverse, and b is replaced by the corresponding set of solution vectors.
-    std::vector<std::vector<double>> &a, 
-    std::vector<std::vector<double>> &b
+    std::vector<std::vector<T>> &a, 
+    std::vector<std::vector<T>> &b
   ) {
     const bool printDebug = false;
     int icol, irow, ll, n = a.size(), m = b[0].size();
-    double dum, pivinv;
+    T dum, pivinv;
     std::vector<int> indxc(n), indxr(n), ipiv(n);  // These integer arrays are used for bookkeeping on the pivoting.
     // clear the ipiv array
     for (int j = 0; j < n; j++) {
@@ -116,7 +134,7 @@ namespace nr_explore{
         }
         std::cout << "\n";
       }
-      double big = 0.0;
+      T big = 0.0;
       for (int j = 0; j < n; j++) { // This is the outer loop of the search for a pivot element.
         if (ipiv[j] != 1) {
           for (int k=0; k<n; k++) {
@@ -158,7 +176,7 @@ namespace nr_explore{
 
       if (printDebug) {
         std::cout << "after swapping  " << big << " is on the diagonal ------------------- \n";
-        printTwo(a, b);
+        printMatrices(a, b);
       }
 
       indxr[i] = irow; // We are now ready to divide the pivot row by the
@@ -181,7 +199,7 @@ namespace nr_explore{
 
       if (printDebug) {
         std::cout << "after dividing ------------------- \n";
-        printTwo(a, b);
+        printMatrices(a, b);
       }
 
       for (int ll=0; ll<n; ll++) { //Next, we reduce the rows...
@@ -202,7 +220,7 @@ namespace nr_explore{
       }
       if (printDebug) {
         std::cout << "after reducing ------------------- \n";
-        printTwo(a, b);
+        printMatrices(a, b);
       }
     }
     // This is the end of the main loop over columns of the reduction.
@@ -218,41 +236,50 @@ namespace nr_explore{
     }
     if (printDebug) {
       std::cout << "after unscrambling ------------------- \n";
-      printTwo(a, b);
+      printMatrices(a, b);
     }
     // And we are done.
   }
+  template void gaussj<double>(std::vector<std::vector<double>> &, std::vector<std::vector<double>> &);
+  template void gaussj<float>(std::vector<std::vector<float>> &, std::vector<std::vector<float>> &);
 
+
+  template<class T>
   void make1dIdentity(    
-    std::vector<std::vector<double>> &b
+    std::vector<std::vector<T>> &b
   ) {
-    std::vector<double> b0 = {1};
+    std::vector<T> b0 = {1};
     b.resize(1);
     b[0] = b0;
   }
 
+  template<class T>
   void make2dIdentity(    
-    std::vector<std::vector<double>> &b
+    std::vector<std::vector<T>> &b
   ) {
-    std::vector<double> b0 = {1, 0};
-    std::vector<double> b1 = {0, 1};
+    std::vector<T> b0 = {1, 0};
+    std::vector<T> b1 = {0, 1};
     b.resize(2);
     b[0] = b0;
     b[1] = b1;
   }
+  template void make2dIdentity<double>(std::vector<std::vector<double>> &);
+  template void make2dIdentity<float>(std::vector<std::vector<float>> &);
 
+  template<class T>
   void make3dIdentity(
-    std::vector<std::vector<double>> &a
+    std::vector<std::vector<T>> &a
   ) {
-    std::vector<double> a0 = {1, 0, 0};
-    std::vector<double> a1 = {0, 1, 0};
-    std::vector<double> a2 = {0, 0, 1};
+    std::vector<T> a0 = {1, 0, 0};
+    std::vector<T> a1 = {0, 1, 0};
+    std::vector<T> a2 = {0, 0, 1};
     a.resize(3);
     a[0] = a0;
     a[1] = a1;
     a[2] = a2;
   }
-
+  template void make3dIdentity<double>(std::vector<std::vector<double>> &);
+  template void make3dIdentity<float>(std::vector<std::vector<float>> &);
 
   void make1dExample(
     std::vector<std::vector<double>> &a
@@ -294,7 +321,7 @@ namespace nr_explore{
     a[2] = a2;
   }
 
-    void make3dExample2(
+  void make3dExample2(
     std::vector<std::vector<double>> &a
   ) {
     std::vector<double> a0 = {1, 3, 3};
@@ -329,27 +356,28 @@ namespace nr_explore{
     /*
     multiply(b, b, product);
     std::cout << "Multiply: identity is \n";
-    printOne(product);
+    printMatrix(product);
 
     std::cout << "Multiple: this times identity\n";
-    printOne(a);
+    printMatrix(a);
     multiply(a, b, product);
     std::cout << "is\n";
-    printOne(product);
+    printMatrix(product);
     */
     
     std::cout << "Task: find the inverse of\n";
-    printOne(a);
+    printMatrix(a);
 
     gaussj(a, b);
 
     // this is the inverse
     std::cout << "Outcome: the inverse is\n";
-    printOne(b);
+    printMatrix(b);
 
     multiply(acopy, b, product);
 
     std::cout << "Check: the product is\n";
-    printOne(product);
+    printMatrix(product);
   }
+
 }

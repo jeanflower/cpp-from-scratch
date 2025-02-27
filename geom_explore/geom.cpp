@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <chrono>
+#include "../nr_explore/gaussj.hpp"
 #include "geom.hpp"
 #include "geom_display.hpp"
 #include <functional>
@@ -563,13 +564,26 @@ namespace geom_examples {
   // matter of finding a 2x2 Jacobian, inverting it, and
   // multiplying it by the function value.
   template <
-    class numType,    // float, double, long double
-    class inputT,     // Coords2D<numType>
-    class outputT,    // Coords2D<numType>
-    class F           // CubicFunction<numType>
+    class numType,    // e.g. float, double, long double
+    class inputT,     // e.g. Coords2D<numType>
+    class outputT,    // e.g. Coords2D<numType>
+    class F           // e.g. CubicFunction<numType>
   >
   class StepFinder2D2D {
+
+      const bool useGaussj;
+      std::vector<std::vector<numType>> a;
+      std::vector<std::vector<numType>> b;
     public: 
+      StepFinder2D2D(bool useGaussj = false): useGaussj(useGaussj) {
+        // set up matrices used for gaussj inversion of Jacobian
+        a.resize(2);
+        b.resize(2);
+        a[0] = {0, 0};
+        a[1] = {0, 0};
+        b[0] = {0, 0};
+        b[1] = {0, 0};
+      }
     
       inputT findStep(
         F &funcd, 
@@ -585,34 +599,51 @@ namespace geom_examples {
         // Jacobian J is a 2x2 matrix
         // ( d/dx F_x    d/dy F_x)
         // ( d/dx F_y    d/dy F_y)
+        // 
         // x_new = x_old - J^{-1}F
-        //
-        // J^{-1} = 1/(det J) * ( d/dy F_y    -d/dy F_x)
-        //                      (-d/dx F_y     d/dx F_x)
-        // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
-        //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
-        // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
-        //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
 
-        double det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
-        if(det == 0) {
-            throw std::runtime_error("Zero derivative determinant in complex_newt");
+        numType step_x, step_y;
+        if (useGaussj) {
+          b[0][0] = 1;
+          b[0][1] = 0;
+          b[1][0] = 0;
+          b[1][1] = 1;
+
+          a[0][0] = dfx.X();
+          a[0][1] = dfx.Y();
+          a[1][0] = dfy.X();
+          a[1][1] = dfy.Y();
+
+          nr_explore::gaussj(a, b);
+          // nr_explore::printMatrices(a, b);
+          
+          step_x = (   b[0][0] * f.X() + b[1][0] * f.Y() );
+          step_y = (   b[0][1] * f.X() + b[1][1] * f.Y() );
+        } else {
+          numType det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
+          if(det == 0) {
+              throw std::runtime_error("Zero derivative determinant in complex_newt");
+          }
+
+          step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
+          if (printDebug) {
+            std::cout << "  dfy.Y() * f.X() is   " << dfy.Y() << " * " << f.X() << "\n";
+            std::cout << "- dfy.X() * f.Y() is - " << dfy.X() << " * " << f.Y() << "\n";
+            std::cout << "step_x is " << step_x << "\n";
+          }
+
+          step_y = ( - dfx.Y() * f.X() + dfx.X() * f.Y() ) / det;
+          if (printDebug) {
+            std::cout << "- dfx.Y() * f.X() is - " << dfx.Y() << " * " << f.X() << "\n";
+            std::cout << "  dfx.X() * f.Y() is   " << dfx.X() << " * " << f.Y() << "\n";
+            std::cout << "step_y is " << step_y << "\n";
+          }
         }
 
-        double step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
         if (printDebug) {
-          std::cout << "  dfy.Y() * f.X() is   " << dfy.Y() << " * " << f.X() << "\n";
-          std::cout << "- dfy.X() * f.Y() is - " << dfy.X() << " * " << f.Y() << "\n";
           std::cout << "step_x is " << step_x << "\n";
-        }
-
-        double step_y = ( - dfx.Y() * f.X() + dfx.X() * f.Y() ) / det;
-        if (printDebug) {
-          std::cout << "- dfx.Y() * f.X() is - " << dfx.Y() << " * " << f.X() << "\n";
-          std::cout << "  dfx.X() * f.Y() is   " << dfx.X() << " * " << f.Y() << "\n";
           std::cout << "step_y is " << step_y << "\n";
         }
-
         inputT step(step_x, step_y);
         return step;
       }
@@ -757,7 +788,9 @@ namespace geom_examples {
           InputType(-100.0, -100.0),
           InputType(100.0, 100.0) 
         ),
-        StepFinderType(),
+        StepFinderType(
+          true // the value of useGaussj significantly affects performance!
+        ),
         ConvergenceType(accuracy_tolerance),
         100
       );
@@ -903,15 +936,15 @@ namespace geom_examples {
     }
   );
 
-
-  class CurveDifference {
+  
+  class CurveDifference2D {
     private:
       Curve& c1;
       Curve& c2;
     public:
       using InputType = Coords2D<double>; // think parameter-pair (s, t)
       using OutputType = Coords2D<double>; // think space position (x, y)
-      explicit CurveDifference(Curve& c1, Curve& c2)
+      explicit CurveDifference2D(Curve& c1, Curve& c2)
         : c1(c1), c2(c2) 
         { }
 
@@ -981,45 +1014,6 @@ namespace geom_examples {
       << newtonResultzCubedMinus1.X() << ", " << newtonResultzCubedMinus1.Y() << "\n";
   }
 
-  void intersectAxes() {
-
-    using InputType = Coords2D<double>;
-    using RangeCheckerType = RangeChecker2D<InputType>;
-    using OutputType = Coords2D<double>;
-    using FunctionType = CurveDifference;
-    using StepFinderType = StepFinder2D2D<double, InputType, OutputType, FunctionType>;
-    using ConvergenceType = ConvergenceChecker2D<double, InputType>;
-
-    InputType start = InputType(0, -1);
-    // function representing the difference between two axes
-    // expect (immediate) convergence to the origin
-    Line xaxis(Point(0,0,0), Vector(1,0,0));
-    Line yaxis(Point(0,0,0), Vector(0,1,0));
-    CurveDifference axesDifference(xaxis, yaxis);
-
-    InputType newtonResult = newtonRaphson<
-      double,
-      InputType,
-      RangeCheckerType,
-      OutputType,
-      FunctionType,
-      StepFinderType,
-      ConvergenceType
-    >(
-      axesDifference,
-      start,
-      RangeCheckerType(
-        InputType(-100.0, -100.0),
-        InputType(100.0, 100.0)
-      ),
-      StepFinderType(),
-      ConvergenceType(1e-3),
-      100
-    );
-    std::cout << "axesDifference starting from " <<  start.X() << ", " << start.Y() << " yielded " 
-      << newtonResult.X() << ", " << newtonResult.Y() << "\n";
-  }
-
   Point intersect2DCurves(
     Curve& c1, 
     Curve& c2,
@@ -1029,13 +1023,13 @@ namespace geom_examples {
     using InputType = Coords2D<double>;
     using RangeCheckerType = RangeChecker2D<InputType>;
     using OutputType = Coords2D<double>;
-    using FunctionType = CurveDifference;
+    using FunctionType = CurveDifference2D;
     using StepFinderType = StepFinder2D2D<double, InputType, OutputType, FunctionType>;
     using ConvergenceType = ConvergenceChecker2D<double, InputType>;
 
     // function representing the difference between two lines
     // expect (immediate) convergence to their intersection
-    CurveDifference diff(c1, c2);
+    CurveDifference2D diff(c1, c2);
 
     //Double2DCoords startAxes = Double2DCoords(0, -1);
     InputType newtonResultl1l2 = newtonRaphson<
@@ -1057,7 +1051,7 @@ namespace geom_examples {
       ConvergenceType(1e-3),
       100
     );
-    std::cout << "diff starting from " <<  start.X() << ", " << start.Y() << " yielded " 
+    std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " yielded " 
       << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
 
     Point onC1 = c1.evaluate(newtonResultl1l2.X());
@@ -1069,11 +1063,10 @@ namespace geom_examples {
     return onC1; // TOO MUCH TO DO - what if we want to return onC2? Convergence fails?
   }
 
-  void intersectLines() {
-    Line l1(Point(1,2,0), Vector(1,1,0));
-    Line l2(Point(22,11,0), Vector(2,1,0));
-    Coords2D<double> start = Coords2D<double>(0, -1);
-
+  void intersectAxes2D() {
+    Line l1(Point(1,2,0), Vector(1,0,0));
+    Line l2(Point(22,11,0), Vector(0,1,0));
+    Coords2D<double> start = Coords2D<double>(1, 1);
     intersect2DCurves(
       l1,
       l2,
@@ -1081,7 +1074,18 @@ namespace geom_examples {
     );
   }
 
-  void intersectCircles() {
+  void intersectLines2D() {
+    Line l1(Point(1,2,0), Vector(1,1,0));
+    Line l2(Point(22,11,0), Vector(2,1,0));
+    Coords2D<double> start = Coords2D<double>(0, -1);
+    intersect2DCurves(
+      l1,
+      l2,
+      start
+    );
+  }
+
+  void intersectCircles2D() {
 
     Circle c1(Point(0.0, 0.0, 0.0), 2);
     Circle c2(Point(1.0, 2.0, 0.0), sqrt(5.0));
@@ -1112,12 +1116,9 @@ namespace geom_examples {
       addCurveToView(yaxis, 0.0, 1.0, GREEN, 2);
       addCurveToView(zaxis, 0.0, 1.0, BLUE, 2);
 
-      intersectAxes();    // should find (0,0)
-      intersectLines();   // should converge immediately
-      intersectCircles(); // a more intereseting case
-
-      //Circle c3(Point(1.0, 2.0, 3.0), sqrt(14.0));
-      //addCurveToView(c3, 0.0, 2*M_PI, BLUE, 2);
+      intersectAxes2D();    // should find (0,0)
+      intersectLines2D();   // should converge immediately
+      intersectCircles2D(); // a more intereseting case
 
     } catch (const std::runtime_error& e) {
       std::cerr << "testNewtonRaphson2Dinput threw an error: " << e.what() << std::endl;
@@ -1125,12 +1126,16 @@ namespace geom_examples {
       std::cerr << "testNewtonRaphson2Dinput threw an error: " << msg << std::endl;
     } catch (...) {
       std::cerr << "testNewtonRaphson2Dinput threw an Unknown exception caught!" << std::endl;
-    }        
+    }
 
   }
 
-
   void fractal() {
+    std::cout << "start timing for fractal\n";
+
+    // Start timer
+    auto start = std::chrono::high_resolution_clock::now();
+
     const int NUM_I = 1500;
     const int NUM_J = 1500;
 
@@ -1187,6 +1192,321 @@ namespace geom_examples {
       std::cout << "pts_to_display[" << i << "].size() = " << pts_to_display[i].size() << "\n";
     }
 
+    // End timer
+    auto end = std::chrono::high_resolution_clock::now();
+    // Calculate duration
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "time for fractal " << duration.count() << "\n";
+
     addPtsToView(pts_to_display, displaySize);
+
+  }
+
+  // A function of three variables uses (x,y, z)
+  // and a function of a complex variable uses x+iy
+  template <class T>
+  struct Coords3D {
+    T x, y, z;
+
+    // Constructor
+    Coords3D(T x = 0, T y = 0, T z = 0);
+
+    // Getter functions
+    T X() const;
+    T Y() const;
+    T Z() const;
+  };
+
+  template <class T>
+  Coords3D<T>::Coords3D(T x, T y, T z) : x(x), y(y), z(z) {}
+
+  template <class T>
+  T Coords3D<T>::X() const { return x; }
+  template <class T>
+  T Coords3D<T>::Y() const { return y; }
+  template <class T>
+  T Coords3D<T>::Z() const { return z; }
+
+  template <class T>
+  Coords3D<T> operator+(const Coords3D<T>& a, const Coords3D<T>& b) {
+    return Coords3D(a.x + b.x, a.y + b.y, a.z + b.z);
+  }
+
+  template <class T>
+  Coords3D<T> operator-(const Coords3D<T>& a, const Coords3D<T>& b) {
+    return Coords3D(a.x - b.x, a.y - b.y, a.z - b.z);
+  }
+
+
+  class CurveDifference3D {
+    private:
+      Curve& c1;
+      Curve& c2;
+    public:
+      using InputType = Coords2D<double>; // think parameter-pair (s, t)
+      using OutputType = Coords3D<double>; // think space position (x, y, z)
+      explicit CurveDifference3D(Curve& c1, Curve& c2)
+        : c1(c1), c2(c2) 
+        { }
+
+        OutputType operator() (const InputType& z) {
+        Point pos1 = c1.evaluate(z.X());
+        Point pos2 = c2.evaluate(z.Y()); 
+
+        //std::cout << "pos1 is " << pos1.X() << " " << pos1.Y() << " " << pos1.Z() << "\n";
+        //std::cout << "pos2 is " << pos2.X() << " " << pos2.Y() << " " << pos2.Z() << "\n";
+
+        addPointToView(pos1, RED, 7);
+        addPointToView(pos2, GREEN, 7);
+
+        return OutputType(
+          pos1.X() - pos2.X(),
+          pos1.Y() - pos2.Y(),
+          pos1.Z() - pos2.Z()
+        );
+      }
+      OutputType dfx(const InputType& z) {
+        Vector first1;
+        c1.evaluate(z.X(), first1);
+
+        return OutputType(
+          first1.X(),
+          first1.Y(),
+          first1.Z()
+        );
+      }
+      OutputType dfy(const InputType& z) {
+        Vector first2;
+        c2.evaluate(z.Y(), first2);
+
+        return OutputType(
+          -first2.X(),
+          -first2.Y(),
+          -first2.Z()
+        );
+      }
+  };
+
+  // Every iterative root-finding process needs a way to
+  // compute a "step" from one "estimate" to the next.
+  // For processes with 2D input and 3D output, we find a rectangular
+  // Jacobian, a transpose of it, and an inverse.
+
+  template <
+    class numType,    // e.g. float, double, long double
+    class inputT,     // e.g. Coords3D<numType>
+    class outputT,    // e.g. Coords3D<numType>
+    class F           // e.g. CurveDiff3d<numType>
+  >
+  class StepFinder2D3D {
+    std::vector<std::vector<numType>> a;
+    std::vector<std::vector<numType>> b;
+
+    public: 
+      StepFinder2D3D() {
+        // set up matrices used for gaussj inversion of Jacobian
+        a.resize(2);
+        b.resize(2);
+        a[0] = {0, 0};
+        a[1] = {0, 0};
+        b[0] = {0, 0};
+        b[1] = {0, 0};
+      }
+
+      inputT findStep(
+        F &funcd, 
+        const inputT& rootEstimate
+      ) {
+        bool printDebug = false;
+        outputT f = funcd(rootEstimate);
+        outputT dfx = funcd.dfx(rootEstimate);
+        outputT dfy = funcd.dfy(rootEstimate);
+
+        if (printDebug) {
+          std::cout << std::fixed << std::setprecision(6) << std::setw(5);
+
+          std::cout << "f is \n";
+          std::cout << f.X() << "\t" << f.Y() << "\t" << f.Z() << "\n";
+
+          std::cout << "dfx is \n";
+          std::cout << dfx.X() << "\t" << dfx.Y() << "\t" << dfx.Z() << "\n";
+
+          std::cout << "dfy is \n";
+          std::cout << dfy.X() << "\t" << dfy.Y() << "\t" << dfy.Z() << "\n";
+
+          std::cout << std::defaultfloat;
+        }
+
+
+        // Newton's rule
+        //
+        // F is a 3x1 matrix; a column vector F_x, F_y, F_z
+        //
+        // Jacobian J is a 3x2 matrix
+        // ( d/dx F_x    d/dy F_x )
+        // ( d/dx F_y    d/dy F_y )
+        // ( d/dx F_z    d/dy F_z )
+        // 
+        // We'll apply
+        // x_new = x_old - (JtJ)^{-1}JtF
+        //
+        // Jt is a 2x3 matrix
+        // ( d/dx F_x    d/dx F_y   d/dx F_z )
+        // ( d/dy F_x    d/dy F_y   d/dy F_z )
+        //
+        // JtJ is a 2x2 matrix - call it a for inversion
+
+        a[0][0] = dfx.X() * dfx.X() + dfx.Y() * dfx.Y() + dfx.Z() * dfx.Z();
+        a[0][1] = dfx.X() * dfy.X() + dfx.Y() * dfy.Y() + dfx.Z() * dfy.Z();
+        a[1][0] = dfy.X() * dfx.X() + dfy.Y() * dfx.Y() + dfy.Z() * dfx.Z();
+        a[1][1] = dfy.X() * dfy.X() + dfy.Y() * dfy.Y() + dfy.Z() * dfy.Z();
+
+        // 
+        // (JtJ)^{-1} is a 2x2 matrix
+        //
+        // (JtJ)^{-1}Jt is 2x3 matrix
+        //
+        // (JtJ)^{-1}Jt F is 2x1 matrix
+
+        // J^{-1} = 1/(det J) * ( d/dy F_y    -d/dy F_x)
+        //                      (-d/dx F_y     d/dx F_x)
+        // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
+        //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
+        // J^{-1}F = 1/(det J) * ( d/dy F_y * F_x - d/dy F_x * F_y)
+        //                       (-d/dx F_y * F_x + d/dx F_x * F_y)
+
+        b[0][0] = 1;
+        b[0][1] = 0;
+        b[1][0] = 0;
+        b[1][1] = 1;
+
+        if (printDebug) {
+          std::cout << "Before inversion\n";
+          nr_explore::printMatrices(a, b);
+        }
+        nr_explore::gaussj(a, b);
+        if (printDebug) {
+          std::cout << "After inversion\n";
+          nr_explore::printMatrices(a, b);
+        }
+        
+        numType c00 = ( b[0][0] * dfx.X()  + b[1][0] * dfy.X() );
+        numType c10 = ( b[0][0] * dfx.Y()  + b[1][0] * dfy.Y() );
+        numType c20 = ( b[0][0] * dfx.Z()  + b[1][0] * dfy.Z() );
+
+        numType c01 = ( b[0][1] * dfx.X()  + b[1][1] * dfy.X() );
+        numType c11 = ( b[0][1] * dfx.Y()  + b[1][1] * dfy.Y() );
+        numType c21 = ( b[0][1] * dfx.Z()  + b[1][1] * dfy.Z() );
+
+        if (printDebug) {
+          std::cout << std::fixed << std::setprecision(6) << std::setw(5);
+
+          std::cout << "(JtJ)^{-1} * Jt is \n";
+          std::cout << c00 << "\t" << c10 << "\t" << c20 << "\n";
+          std::cout << c01 << "\t" << c11 << "\t" << c21 << "\n";
+
+          std::cout << std::defaultfloat;
+        }
+
+        numType step_x = c00 * f.X() + c10 * f.Y() + c20 * f.Z(); 
+        numType step_y = c01 * f.X() + c11 * f.Y() + c21 * f.Z(); 
+
+        if (printDebug) {
+          std::cout << "step_x is " << step_x << "\n";
+          std::cout << "step_y is " << step_y << "\n";
+        }
+
+        inputT step(step_x, step_y);
+        return step;
+      }
+  };
+
+  Point intersect3DCurves(
+    Curve& c1, 
+    Curve& c2,
+    Coords2D<double>& start
+  ) {
+
+    using InputType = Coords2D<double>;
+    using RangeCheckerType = RangeChecker2D<InputType>;
+    using OutputType = Coords3D<double>;
+    using FunctionType = CurveDifference3D;
+    using StepFinderType = StepFinder2D3D<double, InputType, OutputType, FunctionType>;
+    using ConvergenceType = ConvergenceChecker2D<double, InputType>;
+
+    // function representing the difference between two lines
+    // expect (immediate) convergence to their intersection
+    CurveDifference3D diff(c1, c2);
+
+    InputType newtonResultl1l2 = newtonRaphson<
+      double,
+      InputType,
+      RangeCheckerType,
+      OutputType,
+      FunctionType,
+      StepFinderType,
+      ConvergenceType
+    >(
+      diff, 
+      start,
+      RangeCheckerType(
+        InputType(-100.0, -100.0),
+        InputType(100.0, 100.0)
+      ),
+      StepFinderType(),
+      ConvergenceType(1e-6),
+      100
+    );
+    std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " converged to " 
+      << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
+
+    Point onC1 = c1.evaluate(newtonResultl1l2.X());
+    Point onC2 = c2.evaluate(newtonResultl1l2.Y());
+
+    std::cout << "point on c1 at " << newtonResultl1l2.X() << " = " 
+      <<  onC1.X() << ", " << onC1.Y() << ", " << onC1.Z() << "\n";
+    std::cout << "point on c2 at " << newtonResultl1l2.Y() << " = " 
+      <<  onC2.X() << ", " << onC2.Y() << ", " << onC2.Z() << "\n";
+
+    return onC1; // TOO MUCH TO DO - what if we want to return onC2? Convergence fails?
+  }
+
+  void intersectCurves3D() {
+
+    Circle c(Point(0.0, 0.0, 5.0), 2);
+    Line l(Point(1.0, 1.0, 5.0), Vector(0, 1, 0));
+    Coords2D<double> start = Coords2D<double>(0.3, 0.1);
+
+    addCurveToView(c, 0.0, 2*M_PI, RED, 2);
+    addCurveToView(l, 0.0, 2*M_PI, GREEN, 2);
+
+    Point onC1 = intersect3DCurves(
+      c,
+      l,
+      start
+    );
+
+    addPointToView(onC1, YELLOW, 7);
+  }
+
+  void testNewtonRaphson3Dinput(){
+    try {
+      Line xaxis(Point(0,0,0), Vector(1,0,0));
+      Line yaxis(Point(0,0,0), Vector(0,1,0));
+      Line zaxis(Point(0,0,0), Vector(0,0,1));
+  
+      addCurveToView(xaxis, 0.0, 1.0, RED, 2);
+      addCurveToView(yaxis, 0.0, 1.0, GREEN, 2);
+      addCurveToView(zaxis, 0.0, 1.0, BLUE, 2);
+
+      intersectCurves3D();
+
+    } catch (const std::runtime_error& e) {
+      std::cerr << "testNewtonRaphson2Dinput threw an error: " << e.what() << std::endl;
+    } catch (const char* msg) {
+      std::cerr << "testNewtonRaphson2Dinput threw an error: " << msg << std::endl;
+    } catch (...) {
+      std::cerr << "testNewtonRaphson2Dinput threw an Unknown exception caught!" << std::endl;
+    }
   }
 }

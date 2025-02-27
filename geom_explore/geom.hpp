@@ -107,6 +107,7 @@ namespace geom_examples {
   void test_distance_sq_fn();
 
   void testNewtonRaphson2Dinput();
+  void testNewtonRaphson3Dinput();
 
   void fractal();
 }
