@@ -8,6 +8,9 @@
 
 namespace geom_examples {
 
+  // Generate N muted colors
+  std::vector<uint32_t> generateMutedColors(int count);
+
   constexpr uint32_t RED     = 0xFF0000;
   constexpr uint32_t GREEN   = 0x00FF00;
   constexpr uint32_t BLUE    = 0x0000FF;

@@ -450,34 +450,39 @@ namespace geom_examples {
   // A function of two variables uses (x,y)
   // and a function of a complex variable uses x+iy
   template <class T>
-  struct Coords2D {
+  class Coords2D {
     T x, y;
 
+  public:
     // Constructor
-    Coords2D(T x = 0, T y = 0);
+    Coords2D(T x = 0, T y = 0): x(x), y(y) {}
 
     // Getter functions
-    T X() const;
-    T Y() const;
+    T X() const { return x; }
+    T Y() const { return y; }
+
+    bool operator<(const Coords2D<T>& rhs) const{
+
+      bool lhsNan = std::isnan(X()) || std::isnan(Y());
+      bool rhsNan = std::isnan(rhs.X()) || std::isnan(rhs.Y());
+  
+      if (lhsNan || rhsNan) {
+          // If both are NaN, treat them as equal (i.e., neither is less)
+          if (lhsNan && rhsNan) return false;
+          // Otherwise, decide that NaN is "less" than a valid number.
+          return lhsNan && !rhsNan;
+      }
+
+      return (X() < rhs.X()) || 
+        ((X() == rhs.X()) && (Y() < rhs.Y()));
+    }
+    Coords2D<T> operator+(const Coords2D<T>& rhs) const{
+      return Coords2D(x + rhs.x, y + rhs.y);
+    }
+    Coords2D<T> operator-(const Coords2D<T>& rhs) const{
+      return Coords2D(x - rhs.x, y - rhs.y);
+    }
   };
-
-  template <class T>
-  Coords2D<T>::Coords2D(T x, T y) : x(x), y(y) {}
-
-  template <class T>
-  T Coords2D<T>::X() const { return x; }
-  template <class T>
-  T Coords2D<T>::Y() const { return y; }
-
-  template <class T>
-  Coords2D<T> operator+(const Coords2D<T>& a, const Coords2D<T>& b) {
-    return Coords2D(a.x + b.x, a.y + b.y);
-  }
-
-  template <class T>
-  Coords2D<T> operator-(const Coords2D<T>& a, const Coords2D<T>& b) {
-    return Coords2D(a.x - b.x, a.y - b.y);
-  }
 
   // A certain kind of cubic function of two real values
   // inspired by the complex function z^3 - 1
@@ -485,10 +490,8 @@ namespace geom_examples {
   class CubicFunction {
     public:
       explicit CubicFunction(
-        std::vector<T> coeffs,
-        std::vector<Coords2D<T>> roots
+        std::vector<T> coeffs
       ) {
-        this->roots = roots;
         // ax^3 + bx^2y + cxy^2 + dy^3 + e
         // fx^3 + gx^2y + hxy^2 + iy^3 + j
         a = coeffs[0]; 
@@ -503,7 +506,6 @@ namespace geom_examples {
         j = coeffs[9];
       }
 
-      std::vector<Coords2D<T>> roots;
 
     private: 
       // coefficients of the cubic polynomial
@@ -622,7 +624,7 @@ namespace geom_examples {
         } else {
           numType det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
           if(det == 0) {
-              throw std::runtime_error("Zero derivative determinant in complex_newt");
+            throw std::runtime_error("Zero derivative determinant in complex_newt");
           }
 
           step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
@@ -650,31 +652,32 @@ namespace geom_examples {
   };
 
   template<
-    class inputT
+    class inputT // e.g. Coords2D<double>
   >
   class RangeChecker2D {
     inputT lower_bound, upper_bound;
-    public:
-      RangeChecker2D(
-        inputT lower_bound, 
-        inputT upper_bound) : lower_bound(lower_bound), upper_bound(upper_bound) {}
+  public:
+    RangeChecker2D(
+      inputT lower_bound, 
+      inputT upper_bound
+    ) : lower_bound(lower_bound), upper_bound(upper_bound) {}
 
-      bool inRange(inputT& rootEstimate) {
-        bool printDebug = false;
+    bool inRange(inputT& rootEstimate) {
+      bool printDebug = false;
 
-        if (printDebug) {
-          std::cout << "lower_bound is " << lower_bound.X() << ", " << lower_bound.Y() << "\n";
-          std::cout << "upper_bound is " << upper_bound.X() << ", " << upper_bound.Y() << "\n";
-          std::cout << "rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
-          std::cout << "(lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) = "
-            << (lower_bound.X() - rootEstimate.X()) << " * " << (rootEstimate.X() - upper_bound.X()) << " = "
-            << (lower_bound.X() - rootEstimate.X()) *  (rootEstimate.X() - upper_bound.X()) << "\n";
-          std::cout << "(lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) = "
-            << (lower_bound.Y() - rootEstimate.Y()) << " * " << (rootEstimate.Y() - upper_bound.Y()) << " = "
-            << (lower_bound.Y() - rootEstimate.Y()) *  (rootEstimate.Y() - upper_bound.Y()) << "\n";
-        }
-        return (lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) > 0.0 &&
-               (lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) > 0.0;
+      if (printDebug) {
+        std::cout << "lower_bound is " << lower_bound.X() << ", " << lower_bound.Y() << "\n";
+        std::cout << "upper_bound is " << upper_bound.X() << ", " << upper_bound.Y() << "\n";
+        std::cout << "rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
+        std::cout << "(lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) = "
+          << (lower_bound.X() - rootEstimate.X()) << " * " << (rootEstimate.X() - upper_bound.X()) << " = "
+          << (lower_bound.X() - rootEstimate.X()) *  (rootEstimate.X() - upper_bound.X()) << "\n";
+        std::cout << "(lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) = "
+          << (lower_bound.Y() - rootEstimate.Y()) << " * " << (rootEstimate.Y() - upper_bound.Y()) << " = "
+          << (lower_bound.Y() - rootEstimate.Y()) *  (rootEstimate.Y() - upper_bound.Y()) << "\n";
+      }
+      return (lower_bound.X() - rootEstimate.X()) * (rootEstimate.X() - upper_bound.X()) > 0.0 &&
+              (lower_bound.Y() - rootEstimate.Y()) * (rootEstimate.Y() - upper_bound.Y()) > 0.0;
       }
   };
 
@@ -734,6 +737,9 @@ namespace geom_examples {
       // use the provided RangeChecker to see if we have jumped out of range
       // and should stop
       if (!rangeChecker.inRange(rootEstimate)) {
+        if (printDebug) {
+          std::cout << "Out of range\n";
+        }
         throw("Jumped out of range in newtonRaphson");
       }
 
@@ -751,17 +757,25 @@ namespace geom_examples {
 
   // Assess whether the 2D Newton Raphson converges for a given function f
   // starting from a given guess.
-  // Return a number which says which of the knownSolutions convergence gave
-  // or one more if we didn't converge to a known solution.
-  // e..g. provide 3 known roots, and this can return 0, 1 or 2 for convergence to a known root
-  // and 4 for convergence somewhere else or failure to converge.
+
+  // Add the start to the foundSolutions map, e.g.
+  // convergence to a value within tolerance of a value already in the map
+  //   adds the start to the vector which is the map value
+  // convergence to a value not within tolerance of a value already in the map
+  //   adds a new key value pair with the start in the value
+  // no convergence 
+  //   adds the start to the vector which is the map value for a key of NaNs
+
   template <class T>
-  int NR2DConverges(
+  void NR2DConverges(
     CubicFunction<T>& f,
     Coords2D<T>& guess,
     T accuracy_tolerance,
-    const std::vector<Coords2D<T>>& knownSolutions
+    std::map<Coords2D<T>, std::vector<Coords2D<T>>>& foundSolutions
   ) {
+    bool printDebug = false;
+
+    Coords2D<T> newtonResult(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN());
     try {
       using InputType = Coords2D<T>;
       using RangeCheckerType = RangeChecker2D<InputType>;
@@ -773,7 +787,7 @@ namespace geom_examples {
       InputType start = guess;
 
       //std::cout << "newtonResult on f from guess " << start.X() << " + i * " << start.Y() << "\n";
-      Coords2D<T> newtonResult = newtonRaphson<
+      newtonResult = newtonRaphson<
         T,
         InputType,
         RangeCheckerType,
@@ -794,25 +808,83 @@ namespace geom_examples {
         ConvergenceType(accuracy_tolerance),
         100
       );
-      //std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
-
-      for (int i = 0; i < knownSolutions.size(); i++) {
-        const InputType& knownSoln = knownSolutions[i];
-        if (abs(newtonResult.X() - knownSoln.X()) < 0.1 
-         && abs(newtonResult.Y() - knownSoln.Y()) < 1e-6) {
-          // std::cout << "Converged to " << newtonResult.X() << " + i * " << newtonResult.Y() << " on root " << i << "\n";  
-          // we converged on the root of interest
-          return i;
-        }
-      }
-      return knownSolutions.size();
+      // std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
 
     } catch (const char* msg) {
-      //std::cerr << "Error: " << msg << std::endl;
+      // std::cerr << "Error: " << msg << std::endl;
     } catch (...) {
-      //std::cerr << "Unknown exception caught!" << std::endl;
+      std::cerr << "Unknown exception caught!" << std::endl;
     }
-    return false;
+
+    if (printDebug) {
+      std::cout << "start (" << guess.X() << ", " << guess.Y()
+        << ") converged to (" << 
+        newtonResult.X() << ", " << newtonResult.Y() << ")\n";
+    }
+
+    // The 'funky plot' looks cool but requires that
+    // foundSolutions is primed with known roots.
+    // so for exploring different cubics with not-known roots,
+    // leave makeFunkyPlot to false
+    bool makeFunkyPlot = true;
+
+    bool addedToMap = false;
+    for (auto& kv : foundSolutions) {
+      auto& key = kv.first;
+      if (printDebug) {
+        std::cout << "compare with (" << key.X() << ", " << key.Y() << ")\n";
+      }
+
+      bool matchedRoot;
+
+      if (makeFunkyPlot) {
+
+        // this is a pretty bizarre way to ask
+        // "Have we converged to this key"
+        // ie. this known result?
+        // By setting a very strict tolerance
+        // for the y-coordinate
+        // some points say "no match" and get omitted from the plot
+        matchedRoot = (
+          std::isnan(key.X()) && std::isnan(newtonResult.X())
+        ) || (abs(key.X() - newtonResult.X()) < accuracy_tolerance
+          && abs(key.Y() - newtonResult.Y()) < 1e-6); // 
+      } else {
+        matchedRoot = keysMatch(key, newtonResult, accuracy_tolerance);
+      }
+
+      if (matchedRoot) {
+        if (printDebug) {
+          std::cout << "add to existing collection for key (" << key.X() << ", " << key.Y() << ")\n";
+        }
+  
+        kv.second.push_back(guess);
+        addedToMap = true;
+        break;
+      }
+    }
+    if (!addedToMap) {
+      if (makeFunkyPlot) {
+        // do nothing here to miss these points off the plot
+      } else {
+        // this is a now root for us to plot and assign a colour?
+        // add a new key value pair to the map
+        foundSolutions[newtonResult] = {guess};
+      }
+    }
+    // std::cout << "foundSolutions.size() = " << foundSolutions.size() << "\n";
+  }
+
+  template<class T>
+  bool keysMatch(
+    const Coords2D<T>& lhs, 
+    const Coords2D<T>& rhs, 
+    T accuracy_tolerance
+  ) {
+    return (
+      std::isnan(lhs.X()) && std::isnan(rhs.X())
+    ) || (abs(lhs.X() - rhs.X()) < accuracy_tolerance
+       && abs(lhs.Y() - rhs.Y()) < accuracy_tolerance);  
   }
 
   // Assess whether the 2D Newton Raphson converges for a given function f
@@ -825,7 +897,7 @@ namespace geom_examples {
   template<class T>
   void assessConvergence(
     CubicFunction<T> f,
-    std::vector<std::vector<Coords2D<T>>>& ptsData,
+    std::map<Coords2D<T>, std::vector<Coords2D<T>>>& foundSolutions,
     int NUM_I, 
     int NUM_J, 
     T LOW_X, 
@@ -834,11 +906,12 @@ namespace geom_examples {
     T HIGH_Y,
     T accuracy_tolerance
   ) {
+    bool printDebug = false;
     std::mutex mtx; // protects access to ptsConverged and ptsNotConverged
 
     // Lambda that processes a block of rows (i values)
     auto process_range = [&](int start_i, int end_i) {
-      std::vector<std::vector<Coords2D<T>>> localPtsData(4);
+      std::map<Coords2D<T>, std::vector<Coords2D<T>>> localFoundSolutions = foundSolutions;
 
       for (int i = start_i; i < end_i; i++) {
         for (int j = 0; j < NUM_J; j++) {
@@ -846,19 +919,39 @@ namespace geom_examples {
             LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
             LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
           );
-          int converged = NR2DConverges<T>(
+          NR2DConverges<T>(
             f, 
             start,
             accuracy_tolerance,
-            f.roots
+            localFoundSolutions
           );
-          localPtsData[converged].push_back(start);
         }
       }
-      // Merge local results into the global vectors with locking
+      // Merge local results into the global map with locking
       std::lock_guard<std::mutex> lock(mtx);
-      for (int i = 0; i < 4; i++) {
-        ptsData[i].insert(ptsData[i].end(), localPtsData[i].begin(), localPtsData[i].end());
+      for (const auto& localKv : localFoundSolutions) {
+        auto& localKey = localKv.first;
+
+        // look for a matching key value in foundSolutions
+        bool addedToMap = false;
+        for (auto& foundKv : foundSolutions) {
+          auto& foundKey = foundKv.first;
+          if (keysMatch(localKey, foundKey, accuracy_tolerance)) {
+            if (printDebug) {
+              std::cout << "add to existing collection for key (" << foundKey.X() << ", " << foundKey.Y() << ")\n";
+            }
+
+            // add the contents of localKv.second to foundKey.second
+            foundKv.second.insert(foundKv.second.end(), localKv.second.begin(), localKv.second.end());
+            addedToMap = true;
+            break;
+          }
+        }
+        if (!addedToMap) {
+          // add a new key value pair to the map
+          std::cout << "create new collection for newtonResult (" << localKey.X() << ", " << localKey.Y() << ")\n";
+          foundSolutions[localKey] = localKv.second;
+        }        
       }
     };
 
@@ -886,13 +979,13 @@ namespace geom_examples {
   ){
     std::vector<PtCollection> ptsColls;
 
-    std::vector<uint32_t> colors = {
-      geom_examples::RED, 
-      geom_examples::GREEN, 
-      geom_examples::BLUE, 
-      geom_examples::YELLOW
-    };
-    for (int i = 0; i < 4; i++) {
+    auto colors = generateMutedColors(20);
+
+    for (int i = 0; i < colors.size(); i++) {
+      if (i >= ptsData.size()) {
+        break;
+      }
+      std::cout << "displaying a point collection with " << ptsData[i].size() << " points\n";
       PtCollection ptsObj = {
         .displaySize = displaySize,
         .color = colors[i],
@@ -902,7 +995,7 @@ namespace geom_examples {
       ptsColls.push_back(ptsObj);
     }
 
-    // std::cout << "adding " << ptsObj.pts.size() << " to view\n";
+    // std::cout << "adding " << ptsColls.size() << " collection(s) to view\n";
     addGeometryToView(ptsColls);    
   }
 
@@ -913,11 +1006,6 @@ namespace geom_examples {
     { 
       1, 0, -3, 0, -1, 
       0, 3, 0, -1, 0
-    },
-    std::vector<Coords2D<T>>{
-      Coords2D<T>(1, 0),
-      Coords2D<T>(-0.5, sqrt(3) / 2),
-      Coords2D<T>(-0.5, -sqrt(3) / 2)
     }
   );
 
@@ -928,11 +1016,6 @@ namespace geom_examples {
     { 
       1, 0, -3, 0, 0, 
       0, 3, 0, -1, -1
-    },
-    std::vector<Coords2D<T>>{
-      Coords2D<T>(0, -1),
-      Coords2D<T>( sqrt(3) / 2, 0.5),
-      Coords2D<T>(-sqrt(3) / 2, 0.5)
     }
   );
 
@@ -1121,11 +1204,11 @@ namespace geom_examples {
       intersectCircles2D(); // a more intereseting case
 
     } catch (const std::runtime_error& e) {
-      std::cerr << "testNewtonRaphson2Dinput threw an error: " << e.what() << std::endl;
+      std::cerr << "in testNewtonRaphson2Dinput got an error: " << e.what() << std::endl;
     } catch (const char* msg) {
-      std::cerr << "testNewtonRaphson2Dinput threw an error: " << msg << std::endl;
+      std::cerr << "in testNewtonRaphson2Dinput got an error: " << msg << std::endl;
     } catch (...) {
-      std::cerr << "testNewtonRaphson2Dinput threw an Unknown exception caught!" << std::endl;
+      std::cerr << "in testNewtonRaphson2Dinput got an Unknown exception caught!" << std::endl;
     }
 
   }
@@ -1136,60 +1219,70 @@ namespace geom_examples {
     // Start timer
     auto start = std::chrono::high_resolution_clock::now();
 
-    const int NUM_I = 1500;
-    const int NUM_J = 1500;
+    std::map<Coords2D<float>, std::vector<Coords2D<float>>> foundSolutions;
 
     const int displaySize = 1;
 
-    CubicFunction<float> f = zCubedMinus1<float>;
-    const float LOW_X = -1.5;
-    const float HIGH_X = 1.5;
-    const float LOW_Y = -1.5;
-    const float HIGH_Y = 1.5;
-    const float accuracy_tolerance = 0.003; // spectacular image!
+    try {
+      const int NUM_I = 1500;
+      const int NUM_J = 1500;
+      const float accuracy_tolerance = 0.012; // spectacular image!
 
-    //CubicFunction<double> f = zCubedMinus1<double>;
-    //const double LOW_X = -1.5;
-    //const double HIGH_X = 1.5;
-    //const double LOW_Y = -1.5;
-    //const double HIGH_Y = 1.5;
-    //const double accuracy_tolerance = 1e-6;
+      CubicFunction<float> f = zCubedMinus1<float>;
+      const float LOW_X = -1.5;
+      const float HIGH_X = 1.5;
+      const float LOW_Y = -1.5;
+      const float HIGH_Y = 1.5;
+      // prime foundSolutions with known roots if you want a 'funky plot'
+      foundSolutions[Coords2D<float>(1, 0)] = {};
+      foundSolutions[Coords2D<float>(-0.5, sqrt(3) / 2)] = {};
+      foundSolutions[Coords2D<float>(-0.5, -sqrt(3) / 2)] = {};
 
-    //CubicFunction<long double> f = zCubedMinus1<long double>;
-    //const long double LOW_X = -1.5;
-    //const long double HIGH_X = 1.5;
-    //const long double LOW_Y = -1.5;
-    //const long double HIGH_Y = 1.5;
-    //const long double accuracy_tolerance = 1e-6;
+      //CubicFunction<double> f = zCubedMinus1<double>;
+      //const double LOW_X = -1.5;
+      //const double HIGH_X = 1.5;
+      //const double LOW_Y = -1.5;
+      //const double HIGH_Y = 1.5;
+      //const double accuracy_tolerance = 1e-6;
 
-    //CubicFunction<long double> f = zCubedMinusi<long double>;
-    //const long double LOW_X = -1.5;
-    //const long double HIGH_X = 1.5;
-    //const long double LOW_Y = -1.5;
-    //const long double HIGH_Y = 1.5;
-    //const long double accuracy_tolerance = 1e-6;
+      //CubicFunction<long double> f = zCubedMinus1<long double>;
+      //const long double LOW_X = -1.5;
+      //const long double HIGH_X = 1.5;
+      //const long double LOW_Y = -1.5;
+      //const long double HIGH_Y = 1.5;
+      //const long double accuracy_tolerance = 1e-6;
 
-    // each known root will create a region of a different colour
-    // with an additional region for non-convergent initial points
-    std::vector<std::vector<Coords2D<float>>> ptsData(f.roots.size() + 1);
+      //CubicFunction<long double> f = zCubedMinusi<long double>;
+      //const long double LOW_X = -1.5;
+      //const long double HIGH_X = 1.5;
+      //const long double LOW_Y = -1.5;
+      //const long double HIGH_Y = 1.5;
+      //const long double accuracy_tolerance = 1e-6;
 
-    assessConvergence(
-      f,
-      ptsData,
-      NUM_I, NUM_J, 
-      LOW_X, HIGH_X, LOW_Y, HIGH_Y,
-      accuracy_tolerance
-    );
+      // each known root will create a region of a different colour
+      // with an additional region for non-convergent initial point
+      
+      assessConvergence(
+        f,
+        foundSolutions,
+        NUM_I, NUM_J, 
+        LOW_X, HIGH_X, LOW_Y, HIGH_Y,
+        accuracy_tolerance
+      );
 
-    std::vector<std::vector<Point>> pts_to_display(f.roots.size() + 1);
+    } catch (...) {
 
-    for (int i = 0; i < ptsData.size(); i++) {
-      pts_to_display[i].resize(ptsData[i].size());
-      auto f = [](Coords2D<float> pt) { return Point(pt.X(), pt.Y(), 0.0); };
+    }
 
-      std::transform(ptsData[i].begin(), ptsData[i].end(), pts_to_display[i].begin(), f);
-
-      std::cout << "pts_to_display[" << i << "].size() = " << pts_to_display[i].size() << "\n";
+    std::vector<std::vector<Point>> pts_to_display;
+    for (const auto& kv : foundSolutions) {
+      std::vector<Point> pts;
+      const std::vector<Coords2D<float>>& starts = kv.second;
+      for (const auto& pt : starts) {
+        pts.push_back(Point(pt.X(), pt.Y(), 0.0));
+      }
+      std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+      pts_to_display.push_back(pts);
     }
 
     // End timer
@@ -1205,9 +1298,10 @@ namespace geom_examples {
   // A function of three variables uses (x,y, z)
   // and a function of a complex variable uses x+iy
   template <class T>
-  struct Coords3D {
+  class Coords3D {
     T x, y, z;
 
+    public:
     // Constructor
     Coords3D(T x = 0, T y = 0, T z = 0);
 
@@ -1237,6 +1331,26 @@ namespace geom_examples {
     return Coords3D(a.x - b.x, a.y - b.y, a.z - b.z);
   }
 
+  // Define operator< so that Coords3D objects can be ordered.
+  template <class T>
+  bool operator<(const Coords3D<T>& lhs, const Coords3D<T>& rhs) {
+    bool lhsNan = std::isnan(lhs.X()) || std::isnan(lhs.Y()) || std::isnan(lhs.Z());
+    bool rhsNan = std::isnan(rhs.X()) || std::isnan(rhs.Y()) || std::isnan(rhs.Z());
+
+    if (lhsNan || rhsNan) {
+        // If both are NaN, treat them as equal (i.e., neither is less)
+        if (lhsNan && rhsNan) return false;
+        // Otherwise, decide that NaN is "less" than a valid number.
+        return lhsNan && !rhsNan;
+    }
+
+    return (lhs.X() < rhs.X()) 
+        || ((lhs.X() == rhs.X()) 
+          && (lhs.Y() < rhs.Y()))
+        || ((lhs.X() == rhs.X()) 
+          && (lhs.Y() == rhs.Y()) 
+          && (lhs.Z() < rhs.Z()));
+  }
 
   class CurveDifference3D {
     private:
@@ -1256,8 +1370,8 @@ namespace geom_examples {
         //std::cout << "pos1 is " << pos1.X() << " " << pos1.Y() << " " << pos1.Z() << "\n";
         //std::cout << "pos2 is " << pos2.X() << " " << pos2.Y() << " " << pos2.Z() << "\n";
 
-        addPointToView(pos1, RED, 7);
-        addPointToView(pos2, GREEN, 7);
+        //addPointToView(pos1, RED, 7);
+        //addPointToView(pos2, GREEN, 7);
 
         return OutputType(
           pos1.X() - pos2.X(),
@@ -1421,11 +1535,13 @@ namespace geom_examples {
       }
   };
 
-  Point intersect3DCurves(
-    Curve& c1, 
+  Coords2D<double> intersect3DCurves(
+    Curve& c1,
     Curve& c2,
+    RangeChecker2D<Coords2D<double>> rangeChecker,
     Coords2D<double>& start
   ) {
+    bool printDebug = false;
 
     using InputType = Coords2D<double>;
     using RangeCheckerType = RangeChecker2D<InputType>;
@@ -1449,26 +1565,124 @@ namespace geom_examples {
     >(
       diff, 
       start,
-      RangeCheckerType(
-        InputType(-100.0, -100.0),
-        InputType(100.0, 100.0)
-      ),
+      rangeChecker,
       StepFinderType(),
       ConvergenceType(1e-6),
       100
     );
-    std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " converged to " 
-      << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
+    if (printDebug) {
+      std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " converged to " 
+        << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
+    }
 
     Point onC1 = c1.evaluate(newtonResultl1l2.X());
     Point onC2 = c2.evaluate(newtonResultl1l2.Y());
 
-    std::cout << "point on c1 at " << newtonResultl1l2.X() << " = " 
-      <<  onC1.X() << ", " << onC1.Y() << ", " << onC1.Z() << "\n";
-    std::cout << "point on c2 at " << newtonResultl1l2.Y() << " = " 
-      <<  onC2.X() << ", " << onC2.Y() << ", " << onC2.Z() << "\n";
+    if (printDebug) {
+      std::cout << "point on c1 at " << newtonResultl1l2.X() << " = " 
+        <<  onC1.X() << ", " << onC1.Y() << ", " << onC1.Z() << "\n";
+      std::cout << "point on c2 at " << newtonResultl1l2.Y() << " = " 
+        <<  onC2.X() << ", " << onC2.Y() << ", " << onC2.Z() << "\n";
+    }
 
-    return onC1; // TOO MUCH TO DO - what if we want to return onC2? Convergence fails?
+    return newtonResultl1l2;
+  }
+
+  void plotConvergencePattern() {
+    bool printDebug = false;
+
+    Circle c(Point(1.0, 1.0, 5.0), 2);
+    Line l(Point(2, 1.0, 5.0), Vector(0, 1, 0));
+
+    int displaySize = 2;
+
+    const int NUM_I = 400;
+    const int NUM_J = 400;
+    const float LOW_X = - 3 * M_PI;
+    const float HIGH_X = 3 * M_PI;
+    const float LOW_Y = -10.5;
+    const float HIGH_Y = 10.5;
+
+    addCurveToView(c, LOW_X, HIGH_X, RED, 2);
+    addCurveToView(l, LOW_Y, HIGH_Y, GREEN, 2);
+
+    std::map<Coords2D<double>, std::vector<Coords2D<double>>> foundSolutions;
+    double accuracy_tolerance = 1e-3;
+
+    for (int i = 0; i < NUM_I; i++) {
+      for (int j = 0; j < NUM_J; j++) {
+
+        Coords2D<double> start(
+          LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
+          LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
+        );
+
+        if (printDebug) {
+          std::cout << "explore from start(" << start.X() << ", " << start.Y() << ")\n";
+        }
+
+        Coords2D<double> newtonResult(
+          std::numeric_limits<double>::quiet_NaN(), 
+          std::numeric_limits<double>::quiet_NaN()
+        );
+        try {
+          newtonResult = intersect3DCurves(
+            c,
+            l,
+            RangeChecker2D<Coords2D<double>>(
+              Coords2D<double>(LOW_X, LOW_Y),
+              Coords2D<double>(HIGH_X, HIGH_Y)
+            ),
+            start
+          );
+        } catch (const std::runtime_error& e) {
+          std::cerr << "intersect3DCurves threw an error: " << e.what() << std::endl;
+        } catch (const char* msg) {
+          if (std::string(msg).compare("Singular Matrix")) {            
+            // don't print an error
+            if (printDebug) {
+              std::cerr << "Singular Matrix\n";
+            }
+          } else {
+            std::cerr << "intersect3DCurves threw an error: " << msg << std::endl;
+          }
+        } catch (...) {
+          std::cerr << "intersect3DCurves threw an Unknown exception caught!" << std::endl;
+        }
+        bool addedToMap = false;
+        for (auto& kv : foundSolutions) {
+          auto& key = kv.first;
+          if (keysMatch(key, newtonResult, accuracy_tolerance)) {
+            if (printDebug) {
+              std::cout << "add (" << start.X() << ", " << start.Y() << ") to existing collection for key (" << key.X() << ", " << key.Y() << ")\n";
+            }
+            kv.second.push_back(start);
+            addedToMap = true;
+            break;
+          }
+        }
+        if (!addedToMap) {
+          // add a new key value pair to the map
+          if (printDebug) {
+            std::cout << "create new collection for newtonResult (" << newtonResult.X() << ", " << newtonResult.Y() << ")\n";
+          }
+          foundSolutions[newtonResult] = {start};
+        }
+      }
+    }
+
+    std::vector<std::vector<Point>> pts_to_display;
+    for (const auto& kv : foundSolutions) {
+      std::vector<Point> pts;
+      const std::vector<Coords2D<double>>& starts = kv.second;
+      for (const auto& pt : starts) {
+        pts.push_back(Point(pt.X(), pt.Y(), 0.0));
+      }
+      std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+      pts_to_display.push_back(pts);
+    }
+
+    addPtsToView(pts_to_display, displaySize);
   }
 
   void intersectCurves3D() {
@@ -1480,11 +1694,17 @@ namespace geom_examples {
     addCurveToView(c, 0.0, 2*M_PI, RED, 2);
     addCurveToView(l, 0.0, 2*M_PI, GREEN, 2);
 
-    Point onC1 = intersect3DCurves(
+    Coords2D<double> result = intersect3DCurves(
       c,
       l,
+      RangeChecker2D<Coords2D<double>>(
+        Coords2D<double>(-M_PI, -100.0), // lower s, lower t
+        Coords2D<double>(M_PI, 100.0)    // upper s, upper t
+      ),
       start
     );
+
+    Point onC1 = c.evaluate(result.X());
 
     addPointToView(onC1, YELLOW, 7);
   }
@@ -1495,18 +1715,20 @@ namespace geom_examples {
       Line yaxis(Point(0,0,0), Vector(0,1,0));
       Line zaxis(Point(0,0,0), Vector(0,0,1));
   
-      addCurveToView(xaxis, 0.0, 1.0, RED, 2);
-      addCurveToView(yaxis, 0.0, 1.0, GREEN, 2);
-      addCurveToView(zaxis, 0.0, 1.0, BLUE, 2);
+      //addCurveToView(xaxis, 0.0, 1.0, RED, 2);
+      //addCurveToView(yaxis, 0.0, 1.0, GREEN, 2);
+      //addCurveToView(zaxis, 0.0, 1.0, BLUE, 2);
 
-      intersectCurves3D();
+      //intersectCurves3D();
+
+      plotConvergencePattern();
 
     } catch (const std::runtime_error& e) {
-      std::cerr << "testNewtonRaphson2Dinput threw an error: " << e.what() << std::endl;
+      std::cerr << "in testNewtonRaphson3Dinput got an error: " << e.what() << std::endl;
     } catch (const char* msg) {
-      std::cerr << "testNewtonRaphson2Dinput threw an error: " << msg << std::endl;
+      std::cerr << "in testNewtonRaphson3Dinput got an error: " << msg << std::endl;
     } catch (...) {
-      std::cerr << "testNewtonRaphson2Dinput threw an Unknown exception caught!" << std::endl;
+      std::cerr << "in testNewtonRaphson3Dinput got an Unknown exception caught!" << std::endl;
     }
   }
 }
