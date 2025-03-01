@@ -1281,7 +1281,7 @@ namespace geom_examples {
       for (const auto& pt : starts) {
         pts.push_back(Point(pt.X(), pt.Y(), 0.0));
       }
-      std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+      // std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
       pts_to_display.push_back(pts);
     }
 
@@ -1678,7 +1678,7 @@ namespace geom_examples {
       for (const auto& pt : starts) {
         pts.push_back(Point(pt.X(), pt.Y(), 0.0));
       }
-      std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+      // std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
       pts_to_display.push_back(pts);
     }
 
