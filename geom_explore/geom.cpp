@@ -847,7 +847,7 @@ namespace geom_examples {
         // some points say "no match" and get omitted from the plot
         matchedRoot = (
           std::isnan(key.X()) && std::isnan(newtonResult.X())
-        ) || (abs(key.X() - newtonResult.X()) < accuracy_tolerance
+        ) || (abs(key.X() - newtonResult.X()) < 10 * accuracy_tolerance
           && abs(key.Y() - newtonResult.Y()) < 1e-6); // 
       } else {
         matchedRoot = keysMatch(key, newtonResult, accuracy_tolerance);
@@ -949,7 +949,7 @@ namespace geom_examples {
         }
         if (!addedToMap) {
           // add a new key value pair to the map
-          std::cout << "create new collection for newtonResult (" << localKey.X() << ", " << localKey.Y() << ")\n";
+          //std::cout << "create new collection for newtonResult (" << localKey.X() << ", " << localKey.Y() << ")\n";
           foundSolutions[localKey] = localKv.second;
         }        
       }
@@ -1008,17 +1008,6 @@ namespace geom_examples {
       0, 3, 0, -1, 0
     }
   );
-
-  // An example of a function of two variables
-  template<class T>
-  CubicFunction<T> zCubedMinusi = CubicFunction<T>(
-    // "z^3-i",
-    { 
-      1, 0, -3, 0, 0, 
-      0, 3, 0, -1, -1
-    }
-  );
-
   
   class CurveDifference2D {
     private:
@@ -1213,51 +1202,49 @@ namespace geom_examples {
 
   }
 
-  void fractal() {
+  template <class T>
+  void fractalTyped() {
     std::cout << "start timing for fractal\n";
 
     // Start timer
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::map<Coords2D<float>, std::vector<Coords2D<float>>> foundSolutions;
+    std::map<Coords2D<T>, std::vector<Coords2D<T>>> foundSolutions;
 
     const int displaySize = 1;
 
     try {
       const int NUM_I = 1500;
       const int NUM_J = 1500;
-      const float accuracy_tolerance = 0.012; // spectacular image!
 
-      CubicFunction<float> f = zCubedMinus1<float>;
-      const float LOW_X = -1.5;
-      const float HIGH_X = 1.5;
-      const float LOW_Y = -1.5;
-      const float HIGH_Y = 1.5;
+      //const T accuracy_tolerance = 0.012; // spectacular image!
+      //const T LOW_X = -1.0;
+      //const T HIGH_X = 1.0;
+      //const T LOW_Y = -1.0;
+      //const T HIGH_Y = 1.0;      
+      //CubicFunction<T> f = zCubedMinus1<T>;
       // prime foundSolutions with known roots if you want a 'funky plot'
-      foundSolutions[Coords2D<float>(1, 0)] = {};
-      foundSolutions[Coords2D<float>(-0.5, sqrt(3) / 2)] = {};
-      foundSolutions[Coords2D<float>(-0.5, -sqrt(3) / 2)] = {};
+      //foundSolutions[Coords2D<T>(1, 0)] = {};
+      //foundSolutions[Coords2D<T>(-0.5, sqrt(3) / 2)] = {};
+      //foundSolutions[Coords2D<T>(-0.5, -sqrt(3) / 2)] = {};
 
-      //CubicFunction<double> f = zCubedMinus1<double>;
-      //const double LOW_X = -1.5;
-      //const double HIGH_X = 1.5;
-      //const double LOW_Y = -1.5;
-      //const double HIGH_Y = 1.5;
-      //const double accuracy_tolerance = 1e-6;
+      const T accuracy_tolerance = 0.024;
+      const T LOW_X = -2.0;
+      const T HIGH_X = 4.5;
+      const T LOW_Y = -4.5;
+      const T HIGH_Y = 2.0;
+      CubicFunction<T> f = CubicFunction<T>(
+        { 
+          1, 1, 1, 1, 4,  // if you change these numbers,
+          0, 3, 0, -1, 1  // update the foundSolutions below
+        }
+      );
 
-      //CubicFunction<long double> f = zCubedMinus1<long double>;
-      //const long double LOW_X = -1.5;
-      //const long double HIGH_X = 1.5;
-      //const long double LOW_Y = -1.5;
-      //const long double HIGH_Y = 1.5;
-      //const long double accuracy_tolerance = 1e-6;
-
-      //CubicFunction<long double> f = zCubedMinusi<long double>;
-      //const long double LOW_X = -1.5;
-      //const long double HIGH_X = 1.5;
-      //const long double LOW_Y = -1.5;
-      //const long double HIGH_Y = 1.5;
-      //const long double accuracy_tolerance = 1e-6;
+      // prime foundSolutions with known roots if you want a 'funky plot'
+      // generate these by running without 'funky plot' switched on
+      foundSolutions[Coords2D<T>(-1.5371757456, -0.1414837475)] = {};
+      foundSolutions[Coords2D<T>(-0.8506016284, -1.1358434021)] = {};
+      foundSolutions[Coords2D<T>(1.2045078103, -1.9601940715)] = {};
 
       // each known root will create a region of a different colour
       // with an additional region for non-convergent initial point
@@ -1277,11 +1264,14 @@ namespace geom_examples {
     std::vector<std::vector<Point>> pts_to_display;
     for (const auto& kv : foundSolutions) {
       std::vector<Point> pts;
-      const std::vector<Coords2D<float>>& starts = kv.second;
+      const std::vector<Coords2D<T>>& starts = kv.second;
       for (const auto& pt : starts) {
         pts.push_back(Point(pt.X(), pt.Y(), 0.0));
       }
-      // std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+      std::cout << std::fixed << std::setprecision(10) 
+        << "for root (" << kv.first.X() << ", " << kv.first.Y() << "), we found " 
+        << starts.size() << " starting points\n";
+
       pts_to_display.push_back(pts);
     }
 
@@ -1293,6 +1283,10 @@ namespace geom_examples {
 
     addPtsToView(pts_to_display, displaySize);
 
+  }
+
+  void fractal() {
+    fractalTyped<double>();
   }
 
   // A function of three variables uses (x,y, z)
