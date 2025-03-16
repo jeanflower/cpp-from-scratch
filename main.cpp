@@ -9,7 +9,7 @@
 int main() {
   std::println("Running main() -------------");
 
-  boost_data_types::optionalExample();
+  //boost_data_types::optionalExample();
 
   //geomAPI_examples::sphereExample();
   //geomAPI_examples::torusExample();
@@ -21,11 +21,11 @@ int main() {
 
   // run this with the viewer open to see a plot
   // and interesting for performance comparisons
-  //geom_examples::fractal();
+  geom_examples::fractal();
 
   // writs any accumulated geometry to a JSON file
   // which the viewer can read
-  //geom_examples::writeGeometryToJSON();
+  geom_examples::writeGeometryToJSON();
 
   std::println("Finished running main() -------------");
   return 0;

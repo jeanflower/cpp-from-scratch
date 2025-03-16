@@ -1373,7 +1373,7 @@ namespace geom_examples {
           return patchMatchesCoords(patch, pos, tol_sq);
       };
 
-      const int exampleNumber = 1;
+      const int exampleNumber = 0;
 
       if (exampleNumber == 0) {
 
