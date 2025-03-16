@@ -10,7 +10,7 @@
 TEST_CASE("geom coverage", "[coverage]") {
   geom_examples::nurbsExample();
   const std::string message = geom_examples::nurbsPerformanceExample();
-  std::cout << message;
+  std::println("{}", message);
 
   geom_examples::writeGeometryToJSON();
 

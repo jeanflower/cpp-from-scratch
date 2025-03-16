@@ -7,16 +7,16 @@ namespace boost_data_types {
   void optionalExample() {
     boost::optional<int> opt;
     if (opt) {
-      std::cout << __func__ << " " << "Value: " << *opt << std::endl;
+      std::println("{} Value: {}", __func__, *opt);
     } else {
-      std::cout << __func__ << " " << "No value" << std::endl;
+      std::println("{} No Value", __func__);
     }
 
     opt = 10;
     if (opt) {
-      std::cout << __func__ << " " << "Value: " << *opt << std::endl;
+      std::println("{} Value: {}", __func__, *opt);
     } else {
-      std::cout << __func__ << " " << "No value" << std::endl;
+      std::println("{} No Value", __func__);
     }
   }
 

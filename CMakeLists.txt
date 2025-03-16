@@ -2,6 +2,10 @@
 # https://cloud.google.com/run/docs/quickstarts/build-and-deploy/deploy-c-plus-plus-service?hl=en
 cmake_minimum_required(VERSION 3.20)
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-std=c++23)
+
 # Project name and version
 project(MyProject VERSION 1.0)
 
