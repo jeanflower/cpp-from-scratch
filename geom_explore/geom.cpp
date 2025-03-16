@@ -492,20 +492,19 @@ namespace geom_examples {
       explicit CubicFunction(
         std::vector<T> coeffs
       ) {
-        // ax^3 + bx^2y + cxy^2 + dy^3 + e
-        // fx^3 + gx^2y + hxy^2 + iy^3 + j
-        a = coeffs[0]; 
-        b = coeffs[1]; 
-        c = coeffs[2];
-        d = coeffs[3];
-        e = coeffs[4];
-        f = coeffs[5];
-        g = coeffs[6];
-        h = coeffs[7];
-        i = coeffs[8];
-        j = coeffs[9];
+        //     ax^3 + bx^2y + cxy^2 + dy^3 + e
+        // + i(fx^3 + gx^2y + hxy^2 + iy^3 + j)
+        a = coeffs[0]; //   x^3
+        b = coeffs[1]; //   x^2y
+        c = coeffs[2]; //   xy^2
+        d = coeffs[3]; //   y^3
+        e = coeffs[4]; //   1
+        f = coeffs[5]; // i x^3
+        g = coeffs[6]; // i x^2y
+        h = coeffs[7]; // i xy^2
+        i = coeffs[8]; // i y^3
+        j = coeffs[9]; // i
       }
-
 
     private: 
       // coefficients of the cubic polynomial
@@ -687,13 +686,12 @@ namespace geom_examples {
   >
   class ConvergenceChecker2D {
     private:
-      T accuracy_tolerance_sq;
+      T ptol_sq; // parameter-space tolerance-sqd
     public:
-      ConvergenceChecker2D(T accuracy_tolerance) {
-        accuracy_tolerance_sq = accuracy_tolerance * accuracy_tolerance;
+      ConvergenceChecker2D(T ptol_sq): ptol_sq(ptol_sq) {
       }
       bool hasConverged(inputT step) {
-        return step.X() * step.X() + step.Y() * step.Y() < accuracy_tolerance_sq;
+        return step.X() * step.X() + step.Y() * step.Y() < ptol_sq;
       }
   };
 
@@ -755,8 +753,30 @@ namespace geom_examples {
     throw("Maximum number of iterations exceeded in newtonRaphson");
   }
 
-  // Assess whether the 2D Newton Raphson converges for a given function f
-  // starting from a given guess.
+  template <class T>
+  class ColorPatch2D {
+      
+  protected:
+    Coords2D<T> solution;
+
+  public:
+    uint32_t color;
+
+    // Constructor
+    ColorPatch2D(
+      Coords2D<T> sol,
+      uint32_t col
+    ): solution(sol), color(col) {}
+
+    T X() const { return solution.X(); }
+    T Y() const { return solution.Y(); }
+
+    bool operator<(const ColorPatch2D<T>& rhs) const{
+      return solution < rhs.solution;
+    }
+  };
+
+  auto colors = generateMutedColors(2000);
 
   // Add the start to the foundSolutions map, e.g.
   // convergence to a value within tolerance of a value already in the map
@@ -765,13 +785,45 @@ namespace geom_examples {
   //   adds a new key value pair with the start in the value
   // no convergence 
   //   adds the start to the vector which is the map value for a key of NaNs
-
+  
   template <class T>
-  void NR2DConverges(
+  void addToMap(
+    Coords2D<T>& guess,
+    Coords2D<T>& newtonResult,
+    std::function<bool(ColorPatch2D<T>, Coords2D<T>)>& patchMatcher,
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
+  ){
+    bool printDebug = false;
+
+    bool addedToMap = false;
+    for (auto& kv : foundSolutions) {
+      auto& key = kv.first;
+      if (printDebug) {
+        std::cout << "compare with (" << key.X() << ", " << key.Y() << ")\n";
+      }
+
+      bool matchedRoot = patchMatcher(key, newtonResult);
+
+      if (matchedRoot) {
+        if (printDebug) {
+          std::cout << "add to existing collection for key (" 
+            << key.X() << ", " << key.Y() << ")\n";
+        }
+  
+        kv.second.push_back(guess);
+        addedToMap = true;
+        break;
+      }
+    }
+  }
+
+  // Use 2D Newton Raphson for a given function f
+  // starting from a given guess.
+  template <class T>
+  Coords2D<T> NR2DConverges(
     CubicFunction<T>& f,
     Coords2D<T>& guess,
-    T accuracy_tolerance,
-    std::map<Coords2D<T>, std::vector<Coords2D<T>>>& foundSolutions
+    T tol_sq  // parameter-space tol-sqd
   ) {
     bool printDebug = false;
 
@@ -805,7 +857,9 @@ namespace geom_examples {
         StepFinderType(
           true // the value of useGaussj significantly affects performance!
         ),
-        ConvergenceType(accuracy_tolerance),
+        ConvergenceType(
+          tol_sq // parameter-space tol-sqd
+        ),
         100
       );
       // std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
@@ -822,69 +876,86 @@ namespace geom_examples {
         newtonResult.X() << ", " << newtonResult.Y() << ")\n";
     }
 
-    // The 'funky plot' looks cool but requires that
-    // foundSolutions is primed with known roots.
-    // so for exploring different cubics with not-known roots,
-    // leave makeFunkyPlot to false
-    bool makeFunkyPlot = true;
-
-    bool addedToMap = false;
-    for (auto& kv : foundSolutions) {
-      auto& key = kv.first;
-      if (printDebug) {
-        std::cout << "compare with (" << key.X() << ", " << key.Y() << ")\n";
-      }
-
-      bool matchedRoot;
-
-      if (makeFunkyPlot) {
-
-        // this is a pretty bizarre way to ask
-        // "Have we converged to this key"
-        // ie. this known result?
-        // By setting a very strict tolerance
-        // for the y-coordinate
-        // some points say "no match" and get omitted from the plot
-        matchedRoot = (
-          std::isnan(key.X()) && std::isnan(newtonResult.X())
-        ) || (abs(key.X() - newtonResult.X()) < 10 * accuracy_tolerance
-          && abs(key.Y() - newtonResult.Y()) < 1e-6); // 
-      } else {
-        matchedRoot = keysMatch(key, newtonResult, accuracy_tolerance);
-      }
-
-      if (matchedRoot) {
-        if (printDebug) {
-          std::cout << "add to existing collection for key (" << key.X() << ", " << key.Y() << ")\n";
-        }
-  
-        kv.second.push_back(guess);
-        addedToMap = true;
-        break;
-      }
-    }
-    if (!addedToMap) {
-      if (makeFunkyPlot) {
-        // do nothing here to miss these points off the plot
-      } else {
-        // this is a now root for us to plot and assign a colour?
-        // add a new key value pair to the map
-        foundSolutions[newtonResult] = {guess};
-      }
-    }
     // std::cout << "foundSolutions.size() = " << foundSolutions.size() << "\n";
+    return newtonResult;
   }
 
   template<class T>
-  bool keysMatch(
+  bool coordsMatch(
     const Coords2D<T>& lhs, 
-    const Coords2D<T>& rhs, 
-    T accuracy_tolerance
+    const Coords2D<T>& rhs,
+    T tol
   ) {
     return (
       std::isnan(lhs.X()) && std::isnan(rhs.X())
-    ) || (abs(lhs.X() - rhs.X()) < accuracy_tolerance
-       && abs(lhs.Y() - rhs.Y()) < accuracy_tolerance);  
+    ) || (abs(lhs.X() - rhs.X()) < tol
+       && abs(lhs.Y() - rhs.Y()) < tol);  
+  }
+
+  template<class T>
+  bool patchMatchesCoords(
+    const ColorPatch2D<T>& lhs, 
+    const Coords2D<T>& rhs,
+    T tol_sq
+  ) {
+    if (std::isnan(lhs.X()) && std::isnan(rhs.X())) {
+      return true;
+    }
+    const T x_step = lhs.X() - rhs.X();
+    const T y_step = lhs.Y() - rhs.Y();
+    return (x_step * x_step + y_step * y_step) < tol_sq;
+  }
+
+  template<class T>
+  bool patchMatchesCoordsFunky(
+    const ColorPatch2D<T>& lhs, 
+    const Coords2D<T>& rhs,
+    T tol
+  ) {
+    // This is a pretty bizarre way to ask
+    // "Have we converged to this key"
+    // ie. this known result?
+    // By setting a very strict tolerance
+    // for the y-coordinate
+    // some points say "no match" and get omitted from the plot
+    const bool matched = (
+      std::isnan(lhs.X()) && std::isnan(rhs.X())
+    ) || (abs(lhs.X() - rhs.X()) < tol
+      && abs(lhs.Y() - rhs.Y()) < 1e-6); 
+
+    return matched;  
+  }
+
+  template<class T>
+  bool patchMatchesCoordsFunky2(
+    const ColorPatch2D<T>& lhs, 
+    const Coords2D<T>& rhs,
+    T tol
+  ) {
+    // This is a pretty bizarre way to ask
+    // "Have we converged to this key"
+    // ie. this known result?
+    // By setting a very strict tolerance
+    // for the y-coordinate
+    // some points say "no match" and get omitted from the plot
+    if (std::isnan(lhs.X()) && std::isnan(rhs.X())) {
+      return true;
+    }
+    const T xStep = lhs.X() - rhs.X();
+    const T yStep = lhs.Y() - rhs.Y();
+    return xStep * xStep + yStep * yStep < 1e-11;
+  }
+
+  template<class T>
+  bool patchesMatch(
+    const ColorPatch2D<T>& lhs, 
+    const ColorPatch2D<T>& rhs, 
+    T tol
+  ) {
+    return (
+      std::isnan(lhs.X()) && std::isnan(rhs.X())
+    ) || (abs(lhs.X() - rhs.X()) < tol
+       && abs(lhs.Y() - rhs.Y()) < tol);  
   }
 
   // Assess whether the 2D Newton Raphson converges for a given function f
@@ -897,21 +968,22 @@ namespace geom_examples {
   template<class T>
   void assessConvergence(
     CubicFunction<T> f,
-    std::map<Coords2D<T>, std::vector<Coords2D<T>>>& foundSolutions,
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions,
+    std::function<bool(ColorPatch2D<T>, Coords2D<T>)>& patchMatcher,
     int NUM_I, 
     int NUM_J, 
     T LOW_X, 
     T HIGH_X, 
     T LOW_Y, 
     T HIGH_Y,
-    T accuracy_tolerance
+    T tol_sq  // parameter-space tol-sqd
   ) {
     bool printDebug = false;
     std::mutex mtx; // protects access to ptsConverged and ptsNotConverged
 
     // Lambda that processes a block of rows (i values)
     auto process_range = [&](int start_i, int end_i) {
-      std::map<Coords2D<T>, std::vector<Coords2D<T>>> localFoundSolutions = foundSolutions;
+      std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>> localFoundSolutions = foundSolutions;
 
       for (int i = start_i; i < end_i; i++) {
         for (int j = 0; j < NUM_J; j++) {
@@ -919,10 +991,15 @@ namespace geom_examples {
             LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
             LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
           );
-          NR2DConverges<T>(
+          Coords2D<T> newtonResult = NR2DConverges<T>(
             f, 
             start,
-            accuracy_tolerance,
+            tol_sq  // parameter-space tol-sqd
+          );
+          addToMap(
+            start,
+            newtonResult, 
+            patchMatcher,
             localFoundSolutions
           );
         }
@@ -936,7 +1013,7 @@ namespace geom_examples {
         bool addedToMap = false;
         for (auto& foundKv : foundSolutions) {
           auto& foundKey = foundKv.first;
-          if (keysMatch(localKey, foundKey, accuracy_tolerance)) {
+          if (patchesMatch(localKey, foundKey, tol_sq)) {
             if (printDebug) {
               std::cout << "add to existing collection for key (" << foundKey.X() << ", " << foundKey.Y() << ")\n";
             }
@@ -972,24 +1049,25 @@ namespace geom_examples {
     }    
   }
 
-  // Given collections of Points, assign different colors and add them to the viewables
+  template<class T>
   void addPtsToView(
-    std::vector<std::vector<Point>>& ptsData,
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions,
     int displaySize
   ){
     std::vector<PtCollection> ptsColls;
 
-    auto colors = generateMutedColors(20);
-
-    for (int i = 0; i < colors.size(); i++) {
-      if (i >= ptsData.size()) {
-        break;
+    for (auto& kv : foundSolutions) {
+      std::vector<Point> pts;
+      const std::vector<Coords2D<T>>& starts = kv.second;
+      for (const auto& pt : starts) {
+        pts.push_back(Point(pt.X(), pt.Y(), 0.0));
       }
-      std::cout << "displaying a point collection with " << ptsData[i].size() << " points\n";
+      // std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
+
       PtCollection ptsObj = {
         .displaySize = displaySize,
-        .color = colors[i],
-        .pts = ptsData[i],
+        .color = kv.first.color,
+        .pts = pts,
         .isLine = false
       };
       ptsColls.push_back(ptsObj);
@@ -1078,7 +1156,7 @@ namespace geom_examples {
         InputType(100.0, 100.0) 
       ),
       StepFinderType(),
-      ConvergenceType(1e-3),
+      ConvergenceType(1e-3),  // parameter-space tol-sqd
       100
     );
 
@@ -1120,7 +1198,7 @@ namespace geom_examples {
         InputType(100.0, 100.0)
       ),
       StepFinderType(),
-      ConvergenceType(1e-3),
+      ConvergenceType(1e-3),  // parameter-space tol-sqd
       100
     );
     std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " yielded " 
@@ -1203,76 +1281,278 @@ namespace geom_examples {
   }
 
   template <class T>
+  void findSolutions(
+    CubicFunction<T>& f,
+    T LOW_X,
+    T HIGH_X,
+    T LOW_Y,
+    T HIGH_Y,
+    T accuracy_tolerance, 
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
+  ) {
+    std::vector<Coords2D<T>> solutions = {};
+    // find a number of accurate solutions for f
+    const int NUM_SAMPLES = 10;
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+      for (int j = 0; j < NUM_SAMPLES; j++) {
+        Coords2D<T> start(
+          LOW_X + (HIGH_X - LOW_X) / NUM_SAMPLES * i,
+          LOW_Y + (HIGH_Y - LOW_Y) / NUM_SAMPLES * j
+        );
+        Coords2D<T> newtonResult = NR2DConverges<T>(
+          f, 
+          start,
+          1e-6
+        );
+        /*
+        std::cout << "solution = (" 
+          << newtonResult.X() << ", " << newtonResult.Y() 
+          << ") from (" 
+          << start.X() << ", " << start.Y() 
+          << ")\n";
+        */
+        bool matchedSol = false;
+        for(auto& knownSol: solutions) {
+          if (coordsMatch(newtonResult, knownSol, accuracy_tolerance)) {
+            matchedSol = true;
+            break;
+          }
+        }
+        if (!matchedSol) {
+          solutions.push_back(newtonResult);
+        }
+      }
+    }
+
+    for (int i = 0; i < solutions.size(); i++) {
+      const auto& knownSol = solutions[i];
+      if (std::isnan(knownSol.X())) {
+        foundSolutions[ColorPatch2D<T>(
+          knownSol,
+          WHITE
+        )] = {};  
+        continue;
+      }
+      if (i >= colors.size()) {
+        std::cout << "solution = (" << knownSol.X() << ", " << knownSol.Y() << ") not plotted\n";
+        continue;    
+      }
+      const auto& col = colors[i];
+      std::cout << "solution = (" << knownSol.X() << ", " << knownSol.Y() << ") plotted "<< col << " \n";
+      foundSolutions[ColorPatch2D<T>(
+        knownSol,
+        col
+      )] = {};
+    }
+  }
+
+  template <class T>
   void fractalTyped() {
     std::cout << "start timing for fractal\n";
 
     // Start timer
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::map<Coords2D<T>, std::vector<Coords2D<T>>> foundSolutions;
-
-    const int displaySize = 1;
+    CubicFunction<T> f = zCubedMinus1<T>;
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>> foundSolutions;
+    int displaySize = 5;
 
     try {
-      const int NUM_I = 1500;
-      const int NUM_J = 1500;
+      int NUM_I = 300;
+      int NUM_J = 30;
+      T accuracy_tolerance = 0.001;
+      T LOW_X = -10.0;
+      T HIGH_X = 10.0;
+      T LOW_Y = -10.0;
+      T HIGH_Y = 10.0;
+       // parameter-space tol-sqd
+      T tol_sq = accuracy_tolerance * accuracy_tolerance;
 
-      //const T accuracy_tolerance = 0.012; // spectacular image!
-      //const T LOW_X = -1.0;
-      //const T HIGH_X = 1.0;
-      //const T LOW_Y = -1.0;
-      //const T HIGH_Y = 1.0;      
-      //CubicFunction<T> f = zCubedMinus1<T>;
-      // prime foundSolutions with known roots if you want a 'funky plot'
-      //foundSolutions[Coords2D<T>(1, 0)] = {};
-      //foundSolutions[Coords2D<T>(-0.5, sqrt(3) / 2)] = {};
-      //foundSolutions[Coords2D<T>(-0.5, -sqrt(3) / 2)] = {};
+      std::function<bool(ColorPatch2D<T>, Coords2D<T>)> patchMatcher =
+        [&tol_sq](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+          return patchMatchesCoords(patch, pos, tol_sq);
+      };
 
-      const T accuracy_tolerance = 0.024;
-      const T LOW_X = -2.0;
-      const T HIGH_X = 4.5;
-      const T LOW_Y = -4.5;
-      const T HIGH_Y = 2.0;
-      CubicFunction<T> f = CubicFunction<T>(
-        { 
-          1, 1, 1, 1, 4,  // if you change these numbers,
-          0, 3, 0, -1, 1  // update the foundSolutions below
-        }
-      );
+      const int exampleNumber = 1;
 
-      // prime foundSolutions with known roots if you want a 'funky plot'
-      // generate these by running without 'funky plot' switched on
-      foundSolutions[Coords2D<T>(-1.5371757456, -0.1414837475)] = {};
-      foundSolutions[Coords2D<T>(-0.8506016284, -1.1358434021)] = {};
-      foundSolutions[Coords2D<T>(1.2045078103, -1.9601940715)] = {};
+      if (exampleNumber == 0) {
 
-      // each known root will create a region of a different colour
-      // with an additional region for non-convergent initial point
-      
+        NUM_I = 3000;
+        NUM_J = 3000;
+        displaySize = 1;
+
+        LOW_X = -2.0;
+        HIGH_X = 2.0;
+        LOW_Y = -2.0;
+        HIGH_Y = 2.0;
+
+        accuracy_tolerance = 0.012; // spectacular image!
+
+        patchMatcher =
+          [&accuracy_tolerance](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+            return patchMatchesCoordsFunky(patch, pos, accuracy_tolerance);
+        };
+        
+        f = zCubedMinus1<T>;
+        // prime foundSolutions with known roots if you want a 'funky plot'
+        foundSolutions[ColorPatch2D<T>(
+          Coords2D<T>(1, 0),
+          RED
+        )] = {};
+        foundSolutions[ColorPatch2D<T>(
+          Coords2D<T>(-0.5, sqrt(3) / 2),
+          YELLOW
+        )] = {};
+        foundSolutions[ColorPatch2D<T>(
+          Coords2D<T>(-0.5, -sqrt(3) / 2),
+          GREEN
+        )] = {};
+
+      } else if(exampleNumber == 1) {
+
+        NUM_I = 1000;
+        NUM_J = 1000;
+        displaySize = 1;
+
+        LOW_X = -2.0;
+        HIGH_X = 4.5;
+        LOW_Y = -4.5;
+        HIGH_Y = 2.0;
+
+        accuracy_tolerance = 0.024;
+
+        patchMatcher =
+          [&accuracy_tolerance](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+            return patchMatchesCoordsFunky(patch, pos, accuracy_tolerance);
+        };
+
+        f = CubicFunction<T>(
+          { 
+            1, 1, 1, 1, 4,
+            0, 3, 0, -1, 1
+          }
+        );
+      } else if(exampleNumber == 2) {
+
+        NUM_I = 1000;
+        NUM_J = 1000;
+        displaySize = 1;
+
+        LOW_X = -2.0;
+        HIGH_X = 4.5;
+        LOW_Y = -4.5;
+        HIGH_Y = 2.0;
+
+        accuracy_tolerance = 0.024;
+
+        patchMatcher =
+          [&accuracy_tolerance](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+            return patchMatchesCoordsFunky2(patch, pos, accuracy_tolerance);
+        };
+
+        f = CubicFunction<T>(
+          { 
+            1, 1, 1, 1, 4,
+            0, 3, 0, -1, 1
+          }
+        );
+      } else if(exampleNumber == 3) {
+
+        NUM_I = 1000;
+        NUM_J = 1000;
+        displaySize = 1;
+
+        LOW_X = -2.0;
+        HIGH_X = 4.5;
+        LOW_Y = -4.5;
+        HIGH_Y = 2.0;
+
+        // when the step gets smaller than this,
+        // Newton Raphson says we have converged
+        accuracy_tolerance = 0.015;
+
+        patchMatcher = [](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+          if (std::isnan(patch.X()) && std::isnan(pos.X())) {
+            return true;
+          }
+          const T xStep = patch.X() - pos.X();
+          const T yStep = patch.Y() - pos.Y();
+
+          // sols are expected to be within accuracy_tolerance
+          // but if they're not within a tighter tol, 
+          // reject them i.e. color them black
+
+          return xStep * xStep + yStep * yStep < 1e-11; 
+        };
+
+        f = CubicFunction<T>(
+          { 
+            1, 1, 1, 1, 4,
+            0, 3, 0, -1, 1
+          }
+        );
+      } else if(exampleNumber == 4) {
+
+        NUM_I = 2000;
+        NUM_J = 2000;
+        displaySize = 1;
+
+        LOW_X = -0.5;
+        HIGH_X = 1.5;
+        LOW_Y = -1;
+        HIGH_Y = 1;
+
+        // when the step gets smaller than this,
+        // Newton Raphson says we have converged
+        accuracy_tolerance = 0.012;
+
+        patchMatcher = [](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
+          if (std::isnan(patch.X()) && std::isnan(pos.X())) {
+            return true;
+          }
+          const T xStep = patch.X() - pos.X();
+          const T yStep = patch.Y() - pos.Y();
+
+          // sols are expected to be within accuracy_tolerance
+          // but if they're not within a tighter tol, 
+          // reject them i.e. color them black
+
+          return xStep * xStep + yStep * yStep < 1e-12; 
+        };
+
+        f = CubicFunction<T>(
+          { 
+            0,  0,   1, 0, 1,
+            0,  -1,  0, 1, 0
+          }
+        );
+      }
+
+
+
+      if (foundSolutions.size() == 0) {
+        findSolutions(
+          f,
+          LOW_X,
+          HIGH_X,
+          LOW_Y,
+          HIGH_Y,
+          accuracy_tolerance, 
+          foundSolutions
+        );  
+      }
+
       assessConvergence(
         f,
         foundSolutions,
+        patchMatcher,
         NUM_I, NUM_J, 
         LOW_X, HIGH_X, LOW_Y, HIGH_Y,
-        accuracy_tolerance
+        accuracy_tolerance * accuracy_tolerance
       );
 
     } catch (...) {
 
-    }
-
-    std::vector<std::vector<Point>> pts_to_display;
-    for (const auto& kv : foundSolutions) {
-      std::vector<Point> pts;
-      const std::vector<Coords2D<T>>& starts = kv.second;
-      for (const auto& pt : starts) {
-        pts.push_back(Point(pt.X(), pt.Y(), 0.0));
-      }
-      std::cout << std::fixed << std::setprecision(10) 
-        << "for root (" << kv.first.X() << ", " << kv.first.Y() << "), we found " 
-        << starts.size() << " starting points\n";
-
-      pts_to_display.push_back(pts);
     }
 
     // End timer
@@ -1281,8 +1561,7 @@ namespace geom_examples {
     std::chrono::duration<double> duration = end - start;
     std::cout << "time for fractal " << duration.count() << "\n";
 
-    addPtsToView(pts_to_display, displaySize);
-
+    addPtsToView(foundSolutions, displaySize);
   }
 
   void fractal() {
@@ -1561,7 +1840,7 @@ namespace geom_examples {
       start,
       rangeChecker,
       StepFinderType(),
-      ConvergenceType(1e-6),
+      ConvergenceType(1e-6),  // parameter-space tol-sqd
       100
     );
     if (printDebug) {
@@ -1600,7 +1879,7 @@ namespace geom_examples {
     addCurveToView(c, LOW_X, HIGH_X, RED, 2);
     addCurveToView(l, LOW_Y, HIGH_Y, GREEN, 2);
 
-    std::map<Coords2D<double>, std::vector<Coords2D<double>>> foundSolutions;
+    std::map<ColorPatch2D<double>, std::vector<Coords2D<double>>> foundSolutions;
     double accuracy_tolerance = 1e-3;
 
     for (int i = 0; i < NUM_I; i++) {
@@ -1646,7 +1925,7 @@ namespace geom_examples {
         bool addedToMap = false;
         for (auto& kv : foundSolutions) {
           auto& key = kv.first;
-          if (keysMatch(key, newtonResult, accuracy_tolerance)) {
+          if (patchMatchesCoords(key, newtonResult, accuracy_tolerance * accuracy_tolerance)) {
             if (printDebug) {
               std::cout << "add (" << start.X() << ", " << start.Y() << ") to existing collection for key (" << key.X() << ", " << key.Y() << ")\n";
             }
@@ -1660,23 +1939,25 @@ namespace geom_examples {
           if (printDebug) {
             std::cout << "create new collection for newtonResult (" << newtonResult.X() << ", " << newtonResult.Y() << ")\n";
           }
-          foundSolutions[newtonResult] = {start};
+
+          if (foundSolutions.size() < colors.size()) {
+            ColorPatch2D<double> newPatch(
+              newtonResult,
+              colors[foundSolutions.size()]
+            );
+            foundSolutions[
+              newPatch
+            ] = {start};
+          } else {
+            std::cout << "Ran out of colors to plot, " 
+              << foundSolutions.size() << ">=" 
+              << colors.size() << "\n";
+          }
         }
       }
     }
 
-    std::vector<std::vector<Point>> pts_to_display;
-    for (const auto& kv : foundSolutions) {
-      std::vector<Point> pts;
-      const std::vector<Coords2D<double>>& starts = kv.second;
-      for (const auto& pt : starts) {
-        pts.push_back(Point(pt.X(), pt.Y(), 0.0));
-      }
-      // std::cout << "pts_to_display elt .size() = " << pts.size() << "\n";
-      pts_to_display.push_back(pts);
-    }
-
-    addPtsToView(pts_to_display, displaySize);
+    addPtsToView(foundSolutions, displaySize);
   }
 
   void intersectCurves3D() {
