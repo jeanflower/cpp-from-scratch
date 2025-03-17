@@ -425,7 +425,7 @@ namespace geom_examples {
     } catch (const char* msg) {
       std::cerr << "As expeced for f1, get an error: " << msg << std::endl;
     } catch (...) {
-      std::cerr << "Unknown exception caught!" << std::endl;
+      std::cerr << "Unknown exception caught! for f1 in test_distance_sq_fn" << std::endl;
     }
 
     // f2 does have a zero - expect NR to converge
@@ -440,7 +440,7 @@ namespace geom_examples {
         } catch (const char* msg) {
         std::cerr << "Unexpected for f2, error: " << msg << std::endl;
       } catch (...) {
-        std::cerr << "Unknown exception caught!" << std::endl;
+        std::cerr << "Unknown exception caught! for f2 in test_distance_sq_fn" << std::endl;
       }
     }
 
@@ -451,9 +451,10 @@ namespace geom_examples {
   // and a function of a complex variable uses x+iy
   template <class T>
   class Coords2D {
-    T x, y;
 
   public:
+    T x, y;
+
     // Constructor
     Coords2D(T x = 0, T y = 0): x(x), y(y) {}
 
@@ -517,44 +518,54 @@ namespace geom_examples {
     public: 
 
       // expand a cubic polynomial
-      Coords2D<T> operator() (const Coords2D<T>& z) {
-        return Coords2D<T>(          
+      void eval(
+        const Coords2D<T>& z, 
+        Coords2D<T>* output,
+        Coords2D<T>* dfx,
+        Coords2D<T>* dfy
+      ) {
+        // std::cout << "in cubic funtion eval, z is " << z.X() << ", " << z.Y() << "\n";
+        if (output) {
+          output->x = 
             a * z.X() * z.X() * z.X() // a = 1    1 * z.X() * z.X() * z.X()
           + b * z.X() * z.X() * z.Y() // b = 0    0
           + c * z.X() * z.Y() * z.Y() // c = -3  -3 * z.X() * z.Y() * z.Y()
           + d * z.Y() * z.Y() * z.Y() // d = 0    0
-          + e,                        // e = -1  -1
+          + e;                        // e = -1  -1
+          output->y = 
             f * z.X() * z.X() * z.X() // f = 0    0
           + g * z.X() * z.X() * z.Y() // g = 3    3 * z.X() * z.X() * z.Y()
           + h * z.X() * z.Y() * z.Y() // h = 0    0
           + i * z.Y() * z.Y() * z.Y() // i = -1   -1 * z.Y() * z.Y() * z.Y()
-          + j                         // j = 0    0
-        );
-      }
-      // derivative of a cubic polynomial
-      Coords2D<T> dfx(const Coords2D<T>& z) {
-        return Coords2D<T>(
+          + j;                        // j = 0    0
+          // std::cout << "output is " << output->X() << ", " << output->Y() << "\n";
+        }
+        if (dfx) {
+          dfx->x = 
             3 * a * z.X() * z.X() // a = 1    1 * 3 * z.X() * z.X()
           + 2 * b * z.X() * z.Y() // b = 0    0
           +     c * z.Y() * z.Y() // c = -3   -3 * z.Y() * z.Y()
-          ,
+          ;
+          dfx->y = 
             3 * f * z.X() * z.X() // f = 0    0
           + 2 * g * z.X() * z.Y() // g = 3    2 * 3 * z.X() * z.Y()
           +     h * z.Y() * z.Y() // h = 0    0
-        );
-      }
-      // derivative of a cubic polynomial
-      Coords2D<T> dfy(const Coords2D<T>& z) {
-        return Coords2D<T>(
-
+          ;
+          // std::cout << "dfx is " << dfx->X() << ", " << dfx->Y() << "\n";
+        }
+        if (dfy) {
+          dfy->x = 
                 b * z.X() * z.X() // b = 0    0
           + 2 * c * z.X() * z.Y() // c = -3   -6 * z.X() * z.Y()
           + 3 * d * z.Y() * z.Y() // d = 0    0
-          ,
+          ;
+          dfy->y = 
                 g * z.X() * z.X() // g = 3    3 * z.X() * z.X()
           + 2 * h * z.X() * z.Y() // h = 0    0
           + 3 * i * z.Y() * z.Y() // i = -1   -1 * 3 * z.Y() * z.Y()
-        );
+          ;
+          // std::cout << "dfy is " << dfy->X() << ", " << dfy->Y() << "\n";
+        }
       }
   };
 
@@ -572,9 +583,12 @@ namespace geom_examples {
   >
   class StepFinder2D2D {
 
-      const bool useGaussj;
-      std::vector<std::vector<numType>> a;
-      std::vector<std::vector<numType>> b;
+    const bool useGaussj;
+    std::vector<std::vector<numType>> a;
+    std::vector<std::vector<numType>> b;
+
+    outputT f, dfx, dfy;
+
     public: 
       StepFinder2D2D(bool useGaussj = false): useGaussj(useGaussj) {
         // set up matrices used for gaussj inversion of Jacobian
@@ -591,9 +605,11 @@ namespace geom_examples {
         const inputT& rootEstimate
       ) {
         bool printDebug = false;
-        outputT f = funcd(rootEstimate);
-        outputT dfx = funcd.dfx(rootEstimate);
-        outputT dfy = funcd.dfy(rootEstimate);
+        funcd.eval(rootEstimate, &f, &dfx, &dfy);
+
+        //std::cout << "f is " << f.X() << ", " << f.Y() << "\n";
+        //std::cout << "dfx is " << dfx.X() << ", " << dfx.Y() << "\n";
+        //std::cout << "dfy is " << dfy.X() << ", " << dfy.Y() << "\n";
 
         // Newton's rule
         // F is a column vector F_x, F_y
@@ -710,9 +726,9 @@ namespace geom_examples {
   inputT newtonRaphson(
     F &funcd, // needs operator(), dfx(), dfy() all returning T
     inputT& guess,
-    RangeChecker rangeChecker,
-    StepFinder stepFinder,
-    ConvergenceChecker convergenceChecker,
+    RangeChecker& rangeChecker,
+    StepFinder& stepFinder,
+    ConvergenceChecker& convergenceChecker,
     const int MAX_ITERATIONS
   ) {
     const bool printDebug = false;
@@ -823,7 +839,8 @@ namespace geom_examples {
   Coords2D<T> NR2DConverges(
     CubicFunction<T>& f,
     Coords2D<T>& guess,
-    T tol_sq  // parameter-space tol-sqd
+    T tol_sq,  // parameter-space tol-sqd
+    StepFinder2D2D<T, Coords2D<T>, Coords2D<T>, CubicFunction<T>>& stepFinder
   ) {
     bool printDebug = false;
 
@@ -833,10 +850,16 @@ namespace geom_examples {
       using RangeCheckerType = RangeChecker2D<InputType>;
       using OutputType = Coords2D<T>;
       using FunctionType = CubicFunction<T>;
-      using StepFinderType = StepFinder2D2D<T, InputType, OutputType, FunctionType>;
       using ConvergenceType = ConvergenceChecker2D<T, InputType>;
 
       InputType start = guess;
+
+      RangeCheckerType rangeChecker(
+        InputType(-100.0, -100.0),
+        InputType(100.0, 100.0) 
+      );
+ 
+      ConvergenceType convergence(tol_sq);  // parameter-space tol-sqd
 
       //std::cout << "newtonResult on f from guess " << start.X() << " + i * " << start.Y() << "\n";
       newtonResult = newtonRaphson<
@@ -845,29 +868,24 @@ namespace geom_examples {
         RangeCheckerType,
         OutputType,
         FunctionType,
-        StepFinderType,
+        StepFinder2D2D<T, Coords2D<T>, Coords2D<T>, CubicFunction<T>>,
         ConvergenceType
       >(
         f,
         start,
-        RangeCheckerType(
-          InputType(-100.0, -100.0),
-          InputType(100.0, 100.0) 
-        ),
-        StepFinderType(
-          true // the value of useGaussj significantly affects performance!
-        ),
-        ConvergenceType(
-          tol_sq // parameter-space tol-sqd
-        ),
+        rangeChecker,
+        stepFinder,
+        convergence,
         100
       );
       // std::cout << newtonResult.X() << " + i * " << newtonResult.Y() << "\n";
 
     } catch (const char* msg) {
       // std::cerr << "Error: " << msg << std::endl;
+    } catch (const std::exception& e) {
+      std::cerr << "Exception caught in NR2DConverges: " << e.what() << std::endl;
     } catch (...) {
-      std::cerr << "Unknown exception caught!" << std::endl;
+      std::cerr << "Unknown exception caught! in NR2DConverges" << std::endl;
     }
 
     if (printDebug) {
@@ -985,6 +1003,9 @@ namespace geom_examples {
     auto process_range = [&](int start_i, int end_i) {
       std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>> localFoundSolutions = foundSolutions;
 
+      // Initialise one StepFinder and internal Coords data
+      // for use in all the following iterations
+      StepFinder2D2D<T, Coords2D<T>, Coords2D<T>, CubicFunction<T>> stepFinder;
       for (int i = start_i; i < end_i; i++) {
         for (int j = 0; j < NUM_J; j++) {
           Coords2D<T> start(
@@ -994,7 +1015,8 @@ namespace geom_examples {
           Coords2D<T> newtonResult = NR2DConverges<T>(
             f, 
             start,
-            tol_sq  // parameter-space tol-sqd
+            tol_sq,  // parameter-space tol-sqd
+            stepFinder
           );
           addToMap(
             start,
@@ -1098,36 +1120,34 @@ namespace geom_examples {
         : c1(c1), c2(c2) 
         { }
 
-        OutputType operator() (const InputType& z) {
-        Point pos1 = c1.evaluate(z.X());
-        Point pos2 = c2.evaluate(z.Y()); 
-
-        return OutputType(
-          pos1.X() - pos2.X(),
-          pos1.Y() - pos2.Y()
-        );
-      }
-      OutputType dfx(const InputType& z) {
-        Vector first1;
-        c1.evaluate(z.X(), first1);
-
-        return OutputType(
-          first1.X(),
-          first1.Y()
-        );
-      }
-      OutputType dfy(const InputType& z) {
-        Vector first2;
-        c2.evaluate(z.Y(), first2);
-
-        return OutputType(
-          -first2.X(),
-          -first2.Y()
-        );
+      void eval(
+        const Coords2D<double>& z, 
+        Coords2D<double>* output,
+        Coords2D<double>* dfx,
+        Coords2D<double>* dfy
+      ) {
+        if (output) {
+          Point pos1 = c1.evaluate(z.X());
+          Point pos2 = c2.evaluate(z.Y()); 
+          output->x = pos1.X() - pos2.X();
+          output->y = pos1.Y() - pos2.Y();
+        }
+        if (dfx) {
+          Vector first1;
+          c1.evaluate(z.X(), first1);
+          dfx->x = first1.X();
+          dfx->y = first1.Y();
+        }
+        if (dfy) {
+          Vector first2;
+          c2.evaluate(z.Y(), first2);
+          dfy->x = -first2.X();
+          dfy->y = -first2.Y();
+        }
       }
   };
 
-  void nrZCubedMinus1() {
+  void testNrZCubedMinus1() {
     // function of a complex variable f(z) = z^3 - 1
     // expect convergence if closeish to one of three roots, other convergence
     // from other starting points behaves in a fractal-like way
@@ -1140,6 +1160,16 @@ namespace geom_examples {
     using ConvergenceType = ConvergenceChecker2D<float, InputType>;
 
     InputType startZCubedMinus1 = InputType(0, -1);
+
+    RangeCheckerType rangeChecker(
+      InputType(-100.0, -100.0),
+      InputType(100.0, 100.0) 
+    );
+
+    StepFinderType stepFinder;
+
+    ConvergenceType convergence(1e-3);
+
     Coords2D<float> newtonResultzCubedMinus1 = newtonRaphson<
       float,
       InputType,
@@ -1151,12 +1181,9 @@ namespace geom_examples {
   >(
       zCubedMinus1<float>, 
       startZCubedMinus1,
-      RangeCheckerType(
-        InputType(-100.0, -100.0),
-        InputType(100.0, 100.0) 
-      ),
-      StepFinderType(),
-      ConvergenceType(1e-3),  // parameter-space tol-sqd
+      rangeChecker,
+      stepFinder,
+      convergence,  // parameter-space tol-sqd
       100
     );
 
@@ -1174,12 +1201,23 @@ namespace geom_examples {
     using RangeCheckerType = RangeChecker2D<InputType>;
     using OutputType = Coords2D<double>;
     using FunctionType = CurveDifference2D;
-    using StepFinderType = StepFinder2D2D<double, InputType, OutputType, FunctionType>;
     using ConvergenceType = ConvergenceChecker2D<double, InputType>;
+
+
+    RangeCheckerType rangeChecker(
+      InputType(-100.0, -100.0),
+      InputType(100.0, 100.0)
+    );
+
+    StepFinder2D2D<double, InputType, OutputType, FunctionType> stepFinder;
+
+    ConvergenceType convergence(1e-3);
 
     // function representing the difference between two lines
     // expect (immediate) convergence to their intersection
     CurveDifference2D diff(c1, c2);
+
+
 
     //Double2DCoords startAxes = Double2DCoords(0, -1);
     InputType newtonResultl1l2 = newtonRaphson<
@@ -1188,17 +1226,14 @@ namespace geom_examples {
       RangeCheckerType,
       OutputType,
       FunctionType,
-      StepFinderType,
+      StepFinder2D2D<double, InputType, OutputType, FunctionType>,
       ConvergenceType
     >(
       diff, 
       start,
-      RangeCheckerType(
-        InputType(-100.0, -100.0),
-        InputType(100.0, 100.0)
-      ),
-      StepFinderType(),
-      ConvergenceType(1e-3),  // parameter-space tol-sqd
+      rangeChecker,
+      stepFinder,
+      convergence,  // parameter-space tol-sqd
       100
     );
     std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " yielded " 
@@ -1256,7 +1291,7 @@ namespace geom_examples {
   void testNewtonRaphson2Dinput(){
 
     try {
-      nrZCubedMinus1();
+      testNrZCubedMinus1();
 
       Line xaxis(Point(0,0,0), Vector(1,0,0));
       Line yaxis(Point(0,0,0), Vector(0,1,0));
@@ -1291,6 +1326,9 @@ namespace geom_examples {
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
   ) {
     std::vector<Coords2D<T>> solutions = {};
+
+    StepFinder2D2D<T, Coords2D<T>, Coords2D<T>, CubicFunction<T>> stepFinder;
+
     // find a number of accurate solutions for f
     const int NUM_SAMPLES = 10;
     for (int i = 0; i < NUM_SAMPLES; i++) {
@@ -1302,7 +1340,8 @@ namespace geom_examples {
         Coords2D<T> newtonResult = NR2DConverges<T>(
           f, 
           start,
-          1e-6
+          1e-6,
+          stepFinder
         );
         /*
         std::cout << "solution = (" 
@@ -1377,8 +1416,8 @@ namespace geom_examples {
 
       if (exampleNumber == 0) {
 
-        NUM_I = 3000;
-        NUM_J = 3000;
+        NUM_I = 1000;
+        NUM_J = 1000;
         displaySize = 1;
 
         LOW_X = -2.0;
@@ -1811,7 +1850,7 @@ namespace geom_examples {
   Coords2D<double> intersect3DCurves(
     Curve& c1,
     Curve& c2,
-    RangeChecker2D<Coords2D<double>> rangeChecker,
+    RangeChecker2D<Coords2D<double>>& rangeChecker,
     Coords2D<double>& start
   ) {
     bool printDebug = false;
@@ -1822,6 +1861,10 @@ namespace geom_examples {
     using FunctionType = CurveDifference3D;
     using StepFinderType = StepFinder2D3D<double, InputType, OutputType, FunctionType>;
     using ConvergenceType = ConvergenceChecker2D<double, InputType>;
+
+    StepFinderType stepFinder;
+
+    ConvergenceType convergence(1e-6);
 
     // function representing the difference between two lines
     // expect (immediate) convergence to their intersection
@@ -1839,10 +1882,11 @@ namespace geom_examples {
       diff, 
       start,
       rangeChecker,
-      StepFinderType(),
-      ConvergenceType(1e-6),  // parameter-space tol-sqd
+      stepFinder,
+      convergence, 
       100
     );
+
     if (printDebug) {
       std::cout << "iteration starting from " <<  start.X() << ", " << start.Y() << " converged to " 
         << newtonResultl1l2.X() << ", " << newtonResultl1l2.Y() << "\n";
@@ -1882,6 +1926,12 @@ namespace geom_examples {
     std::map<ColorPatch2D<double>, std::vector<Coords2D<double>>> foundSolutions;
     double accuracy_tolerance = 1e-3;
 
+
+    RangeChecker2D<Coords2D<double>> rangeChecker(
+      Coords2D<double>(LOW_X, LOW_Y),
+      Coords2D<double>(HIGH_X, HIGH_Y)
+    );
+
     for (int i = 0; i < NUM_I; i++) {
       for (int j = 0; j < NUM_J; j++) {
 
@@ -1902,10 +1952,7 @@ namespace geom_examples {
           newtonResult = intersect3DCurves(
             c,
             l,
-            RangeChecker2D<Coords2D<double>>(
-              Coords2D<double>(LOW_X, LOW_Y),
-              Coords2D<double>(HIGH_X, HIGH_Y)
-            ),
+            rangeChecker,
             start
           );
         } catch (const std::runtime_error& e) {
@@ -1969,13 +2016,16 @@ namespace geom_examples {
     addCurveToView(c, 0.0, 2*M_PI, RED, 2);
     addCurveToView(l, 0.0, 2*M_PI, GREEN, 2);
 
+
+    RangeChecker2D<Coords2D<double>> rangeChecker(
+      Coords2D<double>(-M_PI, -100.0), // lower s, lower t
+      Coords2D<double>(M_PI, 100.0)    // upper s, upper t
+    );
+
     Coords2D<double> result = intersect3DCurves(
       c,
       l,
-      RangeChecker2D<Coords2D<double>>(
-        Coords2D<double>(-M_PI, -100.0), // lower s, lower t
-        Coords2D<double>(M_PI, 100.0)    // upper s, upper t
-      ),
+      rangeChecker,
       start
     );
 

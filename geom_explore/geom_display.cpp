@@ -109,7 +109,7 @@ namespace geom_examples {
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     } catch (...) {
-      std::cerr << "Unknown exception caught!" << std::endl;
+      std::cerr << "Unknown exception caught! in writeGeometryToJSON" << std::endl;
     }
   }
 
