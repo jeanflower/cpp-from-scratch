@@ -4,7 +4,7 @@
 #include "geom_explore/geomAPI_usage.hpp"
 #include "geom_explore/geom_nurbs.hpp"
 #include "geom_explore/geom_display.hpp"
-#include "boost_usage.hpp"
+#include "boost_explore/boost_usage.hpp"
 
 int main() {
   std::println("Running main() -------------");
