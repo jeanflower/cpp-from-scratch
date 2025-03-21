@@ -1474,24 +1474,31 @@ namespace geom_examples {
 
       if (exampleNumber == 0) {
 
+        // how many points to sample in each direction
         NUM_I = 1000;
         NUM_J = 1000;
+        // size of the rectangle plotted for each sample point
         displaySize = 1;
 
+        // parameter range of the (x, y) initial starting point for iteration
         LOW_X = -2.0;
         HIGH_X = 2.0;
         LOW_Y = -2.0;
         HIGH_Y = 2.0;
 
+        // what constitutes convergence to a known solution
         accuracy_tolerance = 0.012; // spectacular image!
 
+        // a "patch" is a set of initial values that converge to the same solution
         patchMatcher =
           [&accuracy_tolerance](ColorPatch2D<T> patch, Coords2D<T> pos) -> bool {
             return patchMatchesCoordsFunky(patch, pos, accuracy_tolerance);
         };
-        
+
+        // what function are we iterating as z = x + i * y -> f(z)
         f = zCubedMinus1<T>;
-        // prime foundSolutions with known roots if you want a 'funky plot'
+
+        // prime foundSolutions with known roots if you know them
         foundSolutions[ColorPatch2D<T>(
           Coords2D<T>(1, 0),
           RED
@@ -1505,6 +1512,8 @@ namespace geom_examples {
           GREEN
         )] = {};
 
+        // this does the work of scanning across the parameter space
+        // and finding the patches for our solutions
         makePlot(
           f,
           foundSolutions,
