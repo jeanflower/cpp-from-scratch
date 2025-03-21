@@ -1681,6 +1681,8 @@ namespace geom_examples {
           return xStep * xStep + yStep * yStep < 1e-12; 
         };
 
+        // this loop is aiming at adjusting the task to produce a
+        // sequence of images we can animate
         for (T a = 0.0; a < 0.5; a += 0.1) {
           std::cout << "a = " << a << "\n";
 
