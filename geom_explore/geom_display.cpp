@@ -13,6 +13,9 @@ namespace geom_examples {
 
   std::vector<geom_examples::PtCollection> viewables;
 
+  void clearView() {
+    viewables.clear();
+  }
   void addGeometryToView(const std::vector<PtCollection>& ptColls) {
     for (auto x : ptColls) {
       viewables.push_back(x);
@@ -21,6 +24,7 @@ namespace geom_examples {
 
   void writeGeometryToJSON(
   ) {
+    std::cout << "writing geometry to json\n";
     try {
       // Write this data to a json file for viewing to pick up
       std::ofstream debugFile("viewer/public/output/view_data.json");
@@ -45,72 +49,70 @@ namespace geom_examples {
       );
 
       // we'll redirect cout to write to json file
-      std::streambuf* coutBuf = std::cout.rdbuf(); // Save the original buffer
-
-      std::cout.rdbuf(debugFile.rdbuf());  // Redirect std::cout to the file
-      std::cout << "{";
-      std::cout << "\"ptsGps\":[\n";
+      debugFile << "{";
+      debugFile << "\"ptsGps\":[\n";
       for (size_t i = 0; i < nonLineColls.size(); ++i) {
         auto pts = nonLineColls[i].pts;
         auto col = nonLineColls[i].color;
         auto displaySize = nonLineColls[i].displaySize;
-        std::cout << "{";
-        std::cout << "\"color\":" << col << ",\n";
-        std::cout << "\"displaySize\":" << displaySize << ",\n";
-        std::cout << "\"pts\":[\n";
+        debugFile << "{";
+        debugFile << "\"color\":" << col << ",\n";
+        debugFile << "\"displaySize\":" << displaySize << ",\n";
+        debugFile << "\"pts\":[\n";
         for (size_t j = 0; j < pts.size(); ++j) {
           const Point& pt = pts[j];
-          std::cout 
+          debugFile 
             << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
           if (j != pts.size() - 1) {
-            std::cout << ",";
+            debugFile << ",";
           }
-          std::cout << "\n"; // new point on a new line of the json file
+          debugFile << "\n"; // new point on a new line of the json file
         }
-        std::cout << "]\n"; // end of array of points
-        std::cout << "}\n";  // end of pts object
+        debugFile << "]\n"; // end of array of points
+        debugFile << "}\n";  // end of pts object
         if (i != nonLineColls.size() - 1) {
-          std::cout << ",";
+          debugFile << ",";
         }
       }
-      std::cout << "],\n"; // end of array of pts objects
-      std::cout << "\"linesObjs\":[\n";
+      debugFile << "],\n"; // end of array of pts objects
+      debugFile << "\"linesObjs\":[\n";
 
       for (size_t polyLineIndex = 0; polyLineIndex < isLineColls.size(); ++polyLineIndex) {
         auto lineColl = isLineColls[polyLineIndex];
         auto col = lineColl.color;
         auto vxs = lineColl.pts;
         auto displaySize = lineColl.displaySize;
-        std::cout << "{";
-        std::cout << "\"color\":" << col << ",\n";
-        std::cout << "\"displaySize\":" << displaySize << ",\n";
-        std::cout << "\"vxs\":";
-        std::cout << "[\n";
+        debugFile << "{";
+        debugFile << "\"color\":" << col << ",\n";
+        debugFile << "\"displaySize\":" << displaySize << ",\n";
+        debugFile << "\"vxs\":";
+        debugFile << "[\n";
         for (size_t segIndex = 0; segIndex < vxs.size(); ++segIndex) {
           const Point& pt = vxs[segIndex];
-          std::cout 
+          debugFile 
             << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
           if (segIndex != vxs.size() - 1) {
-            std::cout << ",";
+            debugFile << ",";
           }
-          std::cout << "\n"; // new point on a new line of the json file
+          debugFile << "\n"; // new point on a new line of the json file
         }
-        std::cout << "]\n"; // end of vxs array
-        std::cout << "}\n"; // end of polyLine object
+        debugFile << "]\n"; // end of vxs array
+        debugFile << "}\n"; // end of polyLine object
 
         if (polyLineIndex != isLineColls.size() - 1) {
-          std::cout << ",";
+          debugFile << ",";
         }
-        std::cout << "\n";
+        debugFile << "\n";
       }
-      std::cout << "]}";
-      // Restore std::cout to its original state
-      std::cout.rdbuf(coutBuf);
+      debugFile << "]}";
+      
+      debugFile.flush();
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Unknown exception caught! in writeGeometryToJSON" << std::endl;
     }
+    std::cout << "finished writing geometry to json\n";
   }
 
   void addCurveToView(

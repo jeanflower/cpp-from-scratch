@@ -583,10 +583,16 @@ namespace geom_examples {
   >
   class StepFinder2D2D {
 
+    // how to find matrix inverses
+    // for 2x2 we can compute directly, for bigger matrices,
+    // use the general gaussian elimination method
     const bool useGaussj;
+
+    // internal data used to hold the data for gauss inversion
     std::vector<std::vector<numType>> a;
     std::vector<std::vector<numType>> b;
 
+    // internal data used to hold the results of function evaluation
     outputT f, dfx, dfy;
 
     public: 
@@ -639,7 +645,7 @@ namespace geom_examples {
         } else {
           numType det = dfx.X() * dfy.Y() - dfx.Y() * dfy.X();
           if(det == 0) {
-            throw std::runtime_error("Zero derivative determinant in complex_newt");
+            throw("Zero derivative determinant in complex_newt");
           }
 
           step_x = (   dfy.Y() * f.X() - dfy.X() * f.Y() ) / det;
@@ -1325,6 +1331,7 @@ namespace geom_examples {
     T accuracy_tolerance, 
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
   ) {
+    bool printDebug = false;
     std::vector<Coords2D<T>> solutions = {};
 
     StepFinder2D2D<T, Coords2D<T>, Coords2D<T>, CubicFunction<T>> stepFinder;
@@ -1373,11 +1380,15 @@ namespace geom_examples {
         continue;
       }
       if (i >= colors.size()) {
-        std::cout << "solution = (" << knownSol.X() << ", " << knownSol.Y() << ") not plotted\n";
+        //if (printDebug) {
+          std::cout << "not plotted solution = (" << knownSol.X() << ", " << knownSol.Y() << ")\n";
+        //}
         continue;    
       }
       const auto& col = colors[i];
-      std::cout << "solution = (" << knownSol.X() << ", " << knownSol.Y() << ") plotted "<< col << " \n";
+      //if (printDebug) {
+        std::cout << "solution = (" << knownSol.X() << ", " << knownSol.Y() << ") plotted "<< col << " \n";
+      //}
       foundSolutions[ColorPatch2D<T>(
         knownSol,
         col
@@ -1385,12 +1396,59 @@ namespace geom_examples {
     }
   }
 
-  template <class T>
-  void fractalTyped() {
-    std::cout << "start timing for fractal\n";
+  template <class T> 
+  void makePlot(
+    CubicFunction<T>& f,
+    std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions,
+    T LOW_X,
+    T HIGH_X,
+    T LOW_Y,
+    T HIGH_Y,
+    T accuracy_tolerance,
+    std::function<bool(ColorPatch2D<T>, Coords2D<T>)>& patchMatcher,
+    int NUM_I,
+    int NUM_J,
+    int displaySize
+  ) {
 
     // Start timer
     auto start = std::chrono::high_resolution_clock::now();
+
+    if (foundSolutions.size() == 0) {
+      findSolutions(
+        f,
+        LOW_X,
+        HIGH_X,
+        LOW_Y,
+        HIGH_Y,
+        accuracy_tolerance, 
+        foundSolutions
+      );  
+    }
+
+    assessConvergence(
+      f,
+      foundSolutions,
+      patchMatcher,
+      NUM_I, NUM_J, 
+      LOW_X, HIGH_X, LOW_Y, HIGH_Y,
+      accuracy_tolerance * accuracy_tolerance
+    );
+    geom_examples::writeGeometryToJSON();
+
+    // End timer
+    auto end = std::chrono::high_resolution_clock::now();
+    // Calculate duration
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "time for fractal " << duration.count() << "\n";
+
+    clearView();
+    addPtsToView(foundSolutions, displaySize);
+  }
+
+  template <class T>
+  void fractalTyped() {
+    std::cout << "start timing for fractal\n";
 
     CubicFunction<T> f = zCubedMinus1<T>;
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>> foundSolutions;
@@ -1447,6 +1505,19 @@ namespace geom_examples {
           GREEN
         )] = {};
 
+        makePlot(
+          f,
+          foundSolutions,
+          LOW_X,
+          HIGH_X,
+          LOW_Y,
+          HIGH_Y,
+          accuracy_tolerance,
+          patchMatcher,
+          NUM_I,
+          NUM_J,
+          displaySize
+        );
       } else if(exampleNumber == 1) {
 
         NUM_I = 1000;
@@ -1471,6 +1542,21 @@ namespace geom_examples {
             0, 3, 0, -1, 1
           }
         );
+
+        makePlot(
+          f,
+          foundSolutions,
+          LOW_X,
+          HIGH_X,
+          LOW_Y,
+          HIGH_Y,
+          accuracy_tolerance,
+          patchMatcher,
+          NUM_I,
+          NUM_J,
+          displaySize
+        );
+
       } else if(exampleNumber == 2) {
 
         NUM_I = 1000;
@@ -1494,6 +1580,20 @@ namespace geom_examples {
             1, 1, 1, 1, 4,
             0, 3, 0, -1, 1
           }
+        );
+
+        makePlot(
+          f,
+          foundSolutions,
+          LOW_X,
+          HIGH_X,
+          LOW_Y,
+          HIGH_Y,
+          accuracy_tolerance,
+          patchMatcher,
+          NUM_I,
+          NUM_J,
+          displaySize
         );
       } else if(exampleNumber == 3) {
 
@@ -1530,10 +1630,23 @@ namespace geom_examples {
             0, 3, 0, -1, 1
           }
         );
+        makePlot(
+          f,
+          foundSolutions,
+          LOW_X,
+          HIGH_X,
+          LOW_Y,
+          HIGH_Y,
+          accuracy_tolerance,
+          patchMatcher,
+          NUM_I,
+          NUM_J,
+          displaySize
+        );
       } else if(exampleNumber == 4) {
 
-        NUM_I = 2000;
-        NUM_J = 2000;
+        NUM_I = 1000;
+        NUM_J = 1000;
         displaySize = 1;
 
         LOW_X = -0.5;
@@ -1559,48 +1672,37 @@ namespace geom_examples {
           return xStep * xStep + yStep * yStep < 1e-12; 
         };
 
-        f = CubicFunction<T>(
-          { 
-            0,  0,   1, 0, 1,
-            0,  -1,  0, 1, 0
-          }
-        );
+        for (T a = 0.0; a < 0.5; a += 0.1) {
+          std::cout << "a = " << a << "\n";
+
+          foundSolutions.clear();
+          f = CubicFunction<T>(
+            { 
+              a,  0,   a, 0, 1,
+              0,  -1,  0, 1, 0
+            }
+          );
+
+          makePlot(
+            f,
+            foundSolutions,
+            LOW_X,
+            HIGH_X,
+            LOW_Y,
+            HIGH_Y,
+            accuracy_tolerance,
+            patchMatcher,
+            NUM_I,
+            NUM_J,
+            displaySize
+          );
+        }
       }
-
-
-
-      if (foundSolutions.size() == 0) {
-        findSolutions(
-          f,
-          LOW_X,
-          HIGH_X,
-          LOW_Y,
-          HIGH_Y,
-          accuracy_tolerance, 
-          foundSolutions
-        );  
-      }
-
-      assessConvergence(
-        f,
-        foundSolutions,
-        patchMatcher,
-        NUM_I, NUM_J, 
-        LOW_X, HIGH_X, LOW_Y, HIGH_Y,
-        accuracy_tolerance * accuracy_tolerance
-      );
 
     } catch (...) {
 
     }
 
-    // End timer
-    auto end = std::chrono::high_resolution_clock::now();
-    // Calculate duration
-    std::chrono::duration<double> duration = end - start;
-    std::cout << "time for fractal " << duration.count() << "\n";
-
-    addPtsToView(foundSolutions, displaySize);
   }
 
   void fractal() {

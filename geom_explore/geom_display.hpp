@@ -23,6 +23,7 @@ namespace geom_examples {
   const int NUM_SAMPLES = 5000;
   //const int NUM_SAMPLES = 5;
 
+  void clearView();
   void addGeometryToView(const std::vector<PtCollection>& pt_colls);
 
   void writeGeometryToJSON();
