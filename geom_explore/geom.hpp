@@ -44,8 +44,8 @@ namespace geom_examples {
       // Returns a Point, optionally calculates first and second derivatives
       virtual Point evaluate(
         double t, 
-        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
-        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
+        std::optional<Vector*> first_derivative = std::nullopt, 
+        std::optional<Vector*> second_derivative = std::nullopt
       ) const = 0;
 
       virtual ~Curve() = default;
@@ -64,8 +64,8 @@ namespace geom_examples {
 
       Point evaluate(  
         double t, 
-        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
-        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
+        std::optional<Vector*> first_derivative = std::nullopt, 
+        std::optional<Vector*> second_derivative = std::nullopt
       ) const override;
   };
 
@@ -79,8 +79,8 @@ namespace geom_examples {
 
       Point evaluate(  
         double t, 
-        std::optional<std::reference_wrapper<Vector>> first_derivative = std::nullopt, 
-        std::optional<std::reference_wrapper<Vector>> second_derivative = std::nullopt
+        std::optional<Vector*> first_derivative = std::nullopt, 
+        std::optional<Vector*> second_derivative = std::nullopt
       ) const override;
   };
 

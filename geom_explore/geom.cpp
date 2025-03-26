@@ -44,8 +44,8 @@ namespace geom_examples {
   // A Line can be evaluated and provide its derivatives
   Point Line::evaluate(
     double t, 
-    std::optional<std::reference_wrapper<Vector>> first_derivative, 
-    std::optional<std::reference_wrapper<Vector>> second_derivative
+    std::optional<Vector*> first_derivative, 
+    std::optional<Vector*> second_derivative
   ) const {
     Point p{
       start.X() + t * direction.X(), 
@@ -54,15 +54,15 @@ namespace geom_examples {
     };
 
     if (first_derivative.has_value()) {
-      first_derivative->get().x = direction.X();
-      first_derivative->get().y = direction.Y();
-      first_derivative->get().z = direction.Z();
+      first_derivative.value()->x = direction.X();
+      first_derivative.value()->y = direction.Y();
+      first_derivative.value()->z = direction.Z();
     }
 
     if (second_derivative.has_value()) {
-      second_derivative->get().x = 0;
-      second_derivative->get().y = 0;
-      second_derivative->get().z = 0;
+      second_derivative.value()->x = 0;
+      second_derivative.value()->y = 0;
+      second_derivative.value()->z = 0;
     }
 
     // deliberately break the evaluator to test our tests!!
@@ -88,8 +88,8 @@ namespace geom_examples {
   // A Circle can be evaluated and provide its derivatives
   Point Circle::evaluate(
     double t, 
-    std::optional<std::reference_wrapper<Vector>> first_derivative, 
-    std::optional<std::reference_wrapper<Vector>> second_derivative
+    std::optional<Vector*> first_derivative, 
+    std::optional<Vector*> second_derivative
   ) const {
     Point p{
       center.X() + radius * cos(t), 
@@ -98,13 +98,13 @@ namespace geom_examples {
     };
 
     if (first_derivative.has_value()) {
-      first_derivative->get().x = -radius * sin(t);
-      first_derivative->get().y = radius * cos(t);
+      first_derivative.value()->x = -radius * sin(t);
+      first_derivative.value()->y = radius * cos(t);
     }
 
     if (second_derivative.has_value()) {
-      second_derivative->get().x = -radius * cos(t);
-      second_derivative->get().y = -radius * sin(t);
+      second_derivative.value()->x = -radius * cos(t);
+      second_derivative.value()->y = -radius * sin(t);
     }
 
     // deliberately break the evaluator to test our tests!!
@@ -126,7 +126,7 @@ namespace geom_examples {
     double t = 1.0;
 
     Vector first, second;
-    Point p = c.evaluate(t, first, second);
+    Point p = c.evaluate(t, &first, &second);
 
     std::cout << "Point: (" << p.x << ", " << p.y << ")\n";
     std::cout << "First Derivative: (" << first.x << ", " << first.y << ")\n";
@@ -275,7 +275,7 @@ namespace geom_examples {
     std::function<std::pair<Vector, Vector>(double)> position_and_first_deriv_evaluator =
       [&c](double t) -> std::pair<Vector, Vector> {
       Vector firstDeriv;
-      Point p = c.evaluate(t, firstDeriv);
+      Point p = c.evaluate(t, &firstDeriv);
       const Vector v(p.X(), p.Y(), p.Z()); // TODO avoid ever copying Point to Vector
       return std::make_pair(
         v, 
@@ -291,7 +291,7 @@ namespace geom_examples {
       std::function<std::pair<Vector, Vector>(double)> first_and_second_deriv_evaluator =
         [&c](double t) -> std::pair<Vector, Vector> {
         Vector firstDeriv, secondDeriv;
-        Point p = c.evaluate(t, firstDeriv, secondDeriv);
+        Point p = c.evaluate(t, &firstDeriv, &secondDeriv);
         return std::make_pair(
           firstDeriv,
           secondDeriv
@@ -339,7 +339,7 @@ namespace geom_examples {
   };
   double DistanceSqFromOrigin::df(const double t) {
     Vector deriv;
-    Point p = c.evaluate(t, deriv);
+    Point p = c.evaluate(t, &deriv);
     return
       2 * p.X() * deriv.X() +
       2 * p.Y() * deriv.Y() +
@@ -1140,13 +1140,13 @@ namespace geom_examples {
         }
         if (dfx) {
           Vector first1;
-          c1.evaluate(z.X(), first1);
+          c1.evaluate(z.X(), &first1);
           dfx->x = first1.X();
           dfx->y = first1.Y();
         }
         if (dfy) {
           Vector first2;
-          c2.evaluate(z.Y(), first2);
+          c2.evaluate(z.Y(), &first2);
           dfy->x = -first2.X();
           dfy->y = -first2.Y();
         }
@@ -1806,7 +1806,7 @@ namespace geom_examples {
       }
       OutputType dfx(const InputType& z) {
         Vector first1;
-        c1.evaluate(z.X(), first1);
+        c1.evaluate(z.X(), &first1);
 
         return OutputType(
           first1.X(),
@@ -1816,7 +1816,7 @@ namespace geom_examples {
       }
       OutputType dfy(const InputType& z) {
         Vector first2;
-        c2.evaluate(z.Y(), first2);
+        c2.evaluate(z.Y(), &first2);
 
         return OutputType(
           -first2.X(),
