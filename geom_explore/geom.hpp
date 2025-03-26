@@ -32,8 +32,8 @@ namespace geom_examples {
   };
 
   struct PtCollection {
-    uint32_t color;
     int displaySize;
+    uint32_t color;
     std::vector<Point> pts;
     bool isLine;
   };

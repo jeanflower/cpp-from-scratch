@@ -7,7 +7,7 @@
 #include "boost_explore/boost_usage.hpp"
 
 int main() {
-  std::println("Running main() -------------");
+  std::cout << "Running main() -------------\n";
 
   //boost_data_types::optionalExample();
 
@@ -27,6 +27,6 @@ int main() {
   // which the viewer can read
   geom_examples::writeGeometryToJSON();
 
-  std::println("Finished running main() -------------");
+  std::cout << "Finished running main() -------------\n";
   return 0;
 }
