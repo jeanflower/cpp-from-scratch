@@ -1445,13 +1445,62 @@ namespace geom_examples {
       LOW_X, HIGH_X, LOW_Y, HIGH_Y,
       accuracy_tolerance * accuracy_tolerance
     );
-    geom_examples::writeGeometryToJSON();
 
     // End timer
     auto end = std::chrono::high_resolution_clock::now();
     // Calculate duration
     std::chrono::duration<double> duration = end - start;
     std::cout << "time for fractal " << duration.count() << "\n";
+
+    struct PBMPt {
+      double x;
+      double y;
+      uint32_t color;
+    };
+  
+    std::vector<PBMPt> pbmPts;
+    for (auto& kv : foundSolutions) {
+      const auto& key = kv.first;
+      const auto& pts = kv.second;
+      for (const auto& pt : pts) {
+        pbmPts.push_back(
+          { 
+            .x = pt.X(), 
+            .y = pt.Y(), 
+            .color = key.color
+          }
+        );
+      }
+    }
+    // sort pbmPts accroding to x coord then y coord
+    std::sort(pbmPts.begin(), pbmPts.end(), [](const auto& lhs, const auto& rhs) {
+      if (lhs.x == rhs.x) {
+        return lhs.y < rhs.y;
+      }
+      return lhs.x < rhs.x;
+    });
+    // open output file for writing
+    std::ofstream outputFile("viewer/public/output/fractal.pbm");
+    if (!outputFile) {
+      std::cerr << "Error opening output file for writing\n";
+      return;
+    }
+    // write PBM header
+    outputFile << "P3\n";
+    // use NUM_I and NUM_J to set the size of the image
+    outputFile << NUM_I << " " << NUM_J << "\n";
+    outputFile << "255\n";
+    // write pixel data
+    for (const auto& pt : pbmPts) {
+      // turn the uint32_t representation of color
+      // into a 3-tuple of RGB values
+      uint32_t color = pt.color;
+      uint8_t r = (color >> 16) & 0xFF;
+      uint8_t g = (color >> 8) & 0xFF;
+      uint8_t b = color & 0xFF;
+      // write the pixel color
+      outputFile << r << " " << g << " " << b << "\n";
+    }
 
     clearView();
     addPtsToView(foundSolutions, displaySize);
