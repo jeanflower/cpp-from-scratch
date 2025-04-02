@@ -1472,12 +1472,12 @@ namespace geom_examples {
         );
       }
     }
-    // sort pbmPts accroding to x coord then y coord
+    // sort pbmPts according to y coord then x coord
     std::sort(pbmPts.begin(), pbmPts.end(), [](const auto& lhs, const auto& rhs) {
-      if (lhs.x == rhs.x) {
-        return lhs.y < rhs.y;
+      if (lhs.y == rhs.y) {
+        return lhs.x < rhs.x;
       }
-      return lhs.x < rhs.x;
+      return lhs.y < rhs.y;
     });
     // open output file for writing
     std::ofstream outputFile("viewer/public/output/fractal.pbm");
@@ -1495,9 +1495,9 @@ namespace geom_examples {
       // turn the uint32_t representation of color
       // into a 3-tuple of RGB values
       uint32_t color = pt.color;
-      uint8_t r = (color >> 16) & 0xFF;
-      uint8_t g = (color >> 8) & 0xFF;
-      uint8_t b = color & 0xFF;
+      uint32_t r = (color >> 16) & 0xFF;
+      uint32_t g = (color >> 8) & 0xFF;
+      uint32_t b = color & 0xFF;
       // write the pixel color
       outputFile << r << " " << g << " " << b << "\n";
     }
