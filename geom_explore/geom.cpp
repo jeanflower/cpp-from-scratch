@@ -936,6 +936,8 @@ namespace geom_examples {
     const Coords2D<T>& rhs,
     T tol
   ) {
+    const bool printDebug = false;
+
     // This is a pretty bizarre way to ask
     // "Have we converged to this key"
     // ie. this known result?
@@ -946,7 +948,11 @@ namespace geom_examples {
       std::isnan(lhs.X()) && std::isnan(rhs.X())
     ) || (abs(lhs.X() - rhs.X()) < tol
       && abs(lhs.Y() - rhs.Y()) < 1e-6); 
-
+    if (printDebug) {
+      std::cout << "lhs (" << lhs.X() << ", " << lhs.Y() << ") "
+        << "rhs (" << rhs.X() << ", " << rhs.Y() << ") "
+        << "matched is " << matched << "\n";
+    }
     return matched;  
   }
 
@@ -1063,6 +1069,11 @@ namespace geom_examples {
     // Determine the number of threads available.
     unsigned int numThreads = std::thread::hardware_concurrency();
     if (numThreads == 0) { numThreads = 2; } // Fallback in case hardware_concurrency returns 0
+
+    if (printDebug) {
+      numThreads = 1;
+      std::cout << "Using " << numThreads << " threads\n";
+    }
 
     std::vector<std::thread> threads;
     int range = NUM_I / numThreads;
