@@ -81,6 +81,7 @@ else()
     include_directories(geom_explore)
     include_directories(geomAPI_explore)
     include_directories(nr_explore)
+    include_directories(rapidjson)
         
     link_directories(${OpenCASCADE_LIBRARY_DIR})
     
