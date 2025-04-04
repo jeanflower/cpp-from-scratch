@@ -1507,7 +1507,7 @@ namespace geom_examples {
   }
 
   template <class T>
-  void fractalTyped() {
+  void fractalTyped(double origin_r, double origin_i, double radius) {
     std::cout << "start timing for fractal\n";
 
     CubicFunction<T> f = zCubedMinus1<T>;
@@ -1541,10 +1541,10 @@ namespace geom_examples {
         displaySize = 1;
 
         // parameter range of the (x, y) initial starting point for iteration
-        LOW_X = -2.0;
-        HIGH_X = 2.0;
-        LOW_Y = -2.0;
-        HIGH_Y = 2.0;
+        LOW_X  = origin_r - radius;
+        HIGH_X = origin_r + radius;
+        LOW_Y  = origin_i - radius;
+        HIGH_Y = origin_i + radius;
 
         // what constitutes convergence to a known solution
         accuracy_tolerance = 0.012; // spectacular image!
@@ -1776,8 +1776,8 @@ namespace geom_examples {
 
   }
 
-  void fractal() {
-    fractalTyped<double>();
+    void fractal(double origin_r, double origin_i, double radius) {
+      fractalTyped<double>(origin_r, origin_i, radius);
   }
 
   // A function of three variables uses (x,y, z)
