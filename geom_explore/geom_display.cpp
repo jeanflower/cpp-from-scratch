@@ -9,6 +9,10 @@
 #include <chrono>
 #include "geom.hpp"
 
+#include "../rapidjson/document.h"
+#include "../rapidjson/writer.h"
+#include "../rapidjson/stringbuffer.h"
+
 namespace geom_examples {
 
   std::vector<geom_examples::PtCollection> viewables;
@@ -27,11 +31,6 @@ namespace geom_examples {
     std::cout << "writing geometry to json\n";
     try {
       // Write this data to a json file for viewing to pick up
-      std::ofstream debugFile("viewer/public/output/view_data.json");
-      if (!debugFile) {
-          std::cerr << "Error opening file for writing.\n";
-          return;
-      }
 
       std::vector<PtCollection> nonLineColls;
       std::vector<PtCollection> isLineColls;
@@ -48,63 +47,67 @@ namespace geom_examples {
         [](const PtCollection& elt) { return elt.isLine; }
       );
 
-      // we'll redirect cout to write to json file
-      debugFile << "{";
-      debugFile << "\"ptsGps\":[\n";
-      for (size_t i = 0; i < nonLineColls.size(); ++i) {
-        auto pts = nonLineColls[i].pts;
-        auto col = nonLineColls[i].color;
-        auto displaySize = nonLineColls[i].displaySize;
-        debugFile << "{";
-        debugFile << "\"color\":" << col << ",\n";
-        debugFile << "\"displaySize\":" << displaySize << ",\n";
-        debugFile << "\"pts\":[\n";
-        for (size_t j = 0; j < pts.size(); ++j) {
-          const Point& pt = pts[j];
-          debugFile 
-            << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-          if (j != pts.size() - 1) {
-            debugFile << ",";
-          }
-          debugFile << "\n"; // new point on a new line of the json file
-        }
-        debugFile << "]\n"; // end of array of points
-        debugFile << "}\n";  // end of pts object
-        if (i != nonLineColls.size() - 1) {
-          debugFile << ",";
-        }
+      std::ofstream debugFile("viewer/public/output/view_data.json");
+      if (!debugFile) {
+          std::cerr << "Error opening file for writing.\n";
+          return;
       }
-      debugFile << "],\n"; // end of array of pts objects
-      debugFile << "\"linesObjs\":[\n";
 
-      for (size_t polyLineIndex = 0; polyLineIndex < isLineColls.size(); ++polyLineIndex) {
-        auto lineColl = isLineColls[polyLineIndex];
-        auto col = lineColl.color;
-        auto vxs = lineColl.pts;
-        auto displaySize = lineColl.displaySize;
-        debugFile << "{";
-        debugFile << "\"color\":" << col << ",\n";
-        debugFile << "\"displaySize\":" << displaySize << ",\n";
-        debugFile << "\"vxs\":";
-        debugFile << "[\n";
-        for (size_t segIndex = 0; segIndex < vxs.size(); ++segIndex) {
-          const Point& pt = vxs[segIndex];
-          debugFile 
-            << "  { \"x\": " << pt.X() << ", \"y\": " << pt.Y() << ", \"z\": " << pt.Z() << "}";
-          if (segIndex != vxs.size() - 1) {
-            debugFile << ",";
+      rapidjson::Document doc;
+      doc.SetObject();
+      rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+
+      rapidjson::Value ptsGps(rapidjson::kArrayType);
+      for (const PtCollection& item : nonLineColls) {
+          // Convert item to a Value (depends on its type)
+          rapidjson::Value obj(rapidjson::kObjectType); // Create an empty JSON object
+    
+          obj.AddMember("color", item.color, allocator);
+          obj.AddMember("displaySize", item.displaySize, allocator);
+
+          // Convert std::vector<Point> -> JSON Array
+          rapidjson::Value ptsArray(rapidjson::kArrayType);
+          for (const auto& p : item.pts) {
+              rapidjson::Value pointObj(rapidjson::kObjectType);
+              pointObj.AddMember("x", p.x, allocator);
+              pointObj.AddMember("y", p.y, allocator);
+              pointObj.AddMember("z", p.z, allocator);
+              ptsArray.PushBack(pointObj, allocator);
           }
-          debugFile << "\n"; // new point on a new line of the json file
-        }
-        debugFile << "]\n"; // end of vxs array
-        debugFile << "}\n"; // end of polyLine object
-
-        if (polyLineIndex != isLineColls.size() - 1) {
-          debugFile << ",";
-        }
-        debugFile << "\n";
+          obj.AddMember("pts", ptsArray, allocator); // Add the array to the object
+          ptsGps.PushBack(obj, allocator);
       }
-      debugFile << "]}";
+
+      rapidjson::Value linesObjs(rapidjson::kArrayType);
+      for (const PtCollection& item : isLineColls) {
+          // Convert item to a Value (depends on its type)
+          rapidjson::Value obj(rapidjson::kObjectType); // Create an empty JSON object
+    
+          obj.AddMember("color", item.color, allocator);
+          obj.AddMember("displaySize", item.displaySize, allocator);
+
+          // Convert std::vector<Point> -> JSON Array
+          rapidjson::Value ptsArray(rapidjson::kArrayType);
+          for (const auto& p : item.pts) {
+              rapidjson::Value pointObj(rapidjson::kObjectType);
+              pointObj.AddMember("x", p.x, allocator);
+              pointObj.AddMember("y", p.y, allocator);
+              pointObj.AddMember("z", p.z, allocator);
+
+              ptsArray.PushBack(pointObj, allocator);
+          }
+          obj.AddMember("pts", ptsArray, allocator); // Add the array to the object
+          linesObjs.PushBack(obj, allocator);
+      }
+
+      rapidjson::Value jsonObj(rapidjson::kObjectType);
+      jsonObj.AddMember("ptsGps", ptsGps, allocator);
+      jsonObj.AddMember("linesObjs", linesObjs, allocator);
+
+      rapidjson::StringBuffer buffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+      jsonObj.Accept(writer); // Accept the writer to generate the JSON
+      debugFile << buffer.GetString(); // Write the JSON string to the file
       
       debugFile.flush();
     } catch (std::exception& e) {
