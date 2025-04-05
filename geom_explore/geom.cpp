@@ -964,7 +964,7 @@ namespace geom_examples {
     const Coords2D<T>& rhs,
     T tol
   ) {
-    const bool printDebug = false;
+    const bool printDebug = true;
 
     // This is a pretty bizarre way to ask
     // "Have we converged to this key"
