@@ -737,7 +737,7 @@ namespace geom_examples {
     ConvergenceChecker& convergenceChecker,
     const int MAX_ITERATIONS
   ) {
-    const bool printDebug = false;
+    const bool printDebug = true;
 
     // start the iteration at the provided guess
     inputT rootEstimate = guess;
@@ -793,7 +793,7 @@ namespace geom_examples {
       return 'X';
     }
   }
-  
+
   //char makeCharFromColor(uint32_t color) {                                        
   //    uint32_t i = ((color&0x800000) >> 21)|((color&0x008000)>>14)|((color&0x000080)>>7);
   //    return "BGCRMY#"[i];                                                       
