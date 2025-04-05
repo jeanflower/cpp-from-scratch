@@ -738,21 +738,23 @@ namespace geom_examples {
     const int MAX_ITERATIONS
   ) {
     const bool printDebug = true;
-
+    if (printDebug) {
+      std::cout << "\nStart NR at " << guess.X() << ", " << guess.Y() << "\n";
+    }
     // start the iteration at the provided guess
     inputT rootEstimate = guess;
     for (int j = 0; j < MAX_ITERATIONS; j++) {
 
       // use the provided StepFinder to work out where to go next
       inputT step = stepFinder.findStep(funcd, rootEstimate);
-      if (printDebug) {
-        std::cout << "step is " << step.X() << ", " << step.Y() << "\n";
-      }
+      //if (printDebug) {
+      //  std::cout << "step is " << step.X() << ", " << step.Y() << "\n";
+      //}
       // apply the step
       rootEstimate = rootEstimate - step;
-      if (printDebug) {
-        std::cout << "j is " << j << " and rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
-      }
+      //if (printDebug) {
+      //  std::cout << "j is " << j << " and rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
+      //}
 
       // use the provided RangeChecker to see if we have jumped out of range
       // and should stop
@@ -839,7 +841,7 @@ namespace geom_examples {
     std::function<bool(ColorPatch2D<T>, Coords2D<T>)>& patchMatcher,
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
   ){
-    bool printDebug = false;
+    bool printDebug = true;
 
     bool addedToMap = false;
     for (auto& kv : foundSolutions) {
