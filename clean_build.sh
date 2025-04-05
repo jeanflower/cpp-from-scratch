@@ -11,7 +11,6 @@ cd ..
 echo "Run cmake and build the project"
 
 cmake -S . -B build
-cmake -B build -DUSE_CLOUD=OFF
 cmake --build build
 
 echo "Finished cmake build"
