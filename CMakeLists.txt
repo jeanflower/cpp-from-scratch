@@ -1,8 +1,6 @@
-# From
-# https://cloud.google.com/run/docs/quickstarts/build-and-deploy/deploy-c-plus-plus-service?hl=en
+# CMake for running main and tests
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-std=c++23)
 
@@ -10,14 +8,14 @@ add_compile_options(-std=c++23)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 
 # Project name and version
-project(MyProject VERSION 1.0)
+project(MyProject VERSION 1.0 LANGUAGES CXX)
 
 # Set the policy to handle package root variables in uppercase
 cmake_policy(SET CMP0144 NEW)
 cmake_policy(SET CMP0167 NEW)
 
 # Set the C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
@@ -40,24 +38,15 @@ include_directories("/usr/local/Cellar/catch2/3.8.0/include")
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OpenCASCADE_INCLUDE_DIR})
 
-# Add the include directory for your headers
-include_directories(boost_explore)
-include_directories(std_explore)
-include_directories(geom_explore)
-include_directories(geomAPI_explore)
-include_directories(nr_explore)
-include_directories(rapidjson)
-    
-link_directories(${OpenCASCADE_LIBRARY_DIR})
 
-# Add the source files
+# Source files
 add_library(boost_explore_lib boost_explore/boost_usage.cpp)
 add_library(std_explore_lib std_explore/std_usage.cpp)
 add_library(geomAPI_lib geom_explore/geomAPI_usage.cpp)
-add_library(geom_lib 
+add_library(geom_lib
   geom_explore/geom.cpp
   geom_explore/geom_display.cpp
-  geom_explore/geom_nurbs.cpp      
+  geom_explore/geom_nurbs.cpp
 )
 add_library(nr_lib nr_explore/gaussj.cpp)
 
@@ -68,36 +57,61 @@ add_executable(main main.cpp)
 add_executable(test_main test_main.cpp)
 add_executable(test_geom test_geom.cpp)
 
-# Link libraries
+# Include directories
+target_include_directories(geom_lib PRIVATE
+  ${Boost_INCLUDE_DIRS}
+  ${OpenCASCADE_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/boost_explore
+  ${CMAKE_SOURCE_DIR}/std_explore
+  ${CMAKE_SOURCE_DIR}/geom_explore
+  ${CMAKE_SOURCE_DIR}/geomAPI_explore
+  ${CMAKE_SOURCE_DIR}/nr_explore
+  ${CMAKE_SOURCE_DIR}/rapidjson
+)
+
+# Linking
+target_link_libraries(test_main 
+  PRIVATE std_explore_lib
+  ${Boost_LIBRARIES}
+  TKernel 
+  TKMath 
+  TKGeomBase 
+  TKGeomAlgo
+  ${OpenCASCADE_LIBRARIES}
+)
 target_link_libraries(geom_lib 
-    PRIVATE nr_lib
+  PRIVATE ${Boost_LIBRARIES} 
+  TKernel 
+  TKMath 
+  TKGeomBase 
+  TKGeomAlgo
 )
 
 target_link_libraries(main 
-    PRIVATE ${Boost_LIBRARIES} 
-            TKernel TKMath TKGeomBase TKGeomAlgo
-            boost_explore_lib 
-            std_explore_lib
-            geomAPI_lib
-            geom_lib
-            nr_lib
+  PRIVATE ${Boost_LIBRARIES} 
+  TKernel TKMath TKGeomBase TKGeomAlgo
+  boost_explore_lib 
+  std_explore_lib
+  geomAPI_lib
+  geom_lib
+  nr_lib
 )
 
-target_link_libraries(test_main 
+target_link_libraries(test_main
   PRIVATE Catch2::Catch2WithMain
-            ${Boost_LIBRARIES} 
-            TKernel TKMath TKGeomBase TKGeomAlgo
-            boost_explore_lib 
-            std_explore_lib
-            geomAPI_lib
-            geom_lib
+  ${Boost_LIBRARIES} 
+  TKernel TKMath TKGeomBase TKGeomAlgo
+  boost_explore_lib 
+  std_explore_lib
+  geomAPI_lib
+  geom_lib
+  nr_lib
 )
-
-target_link_libraries(test_geom 
+target_link_libraries(test_geom
   PRIVATE Catch2::Catch2WithMain
-          ${Boost_LIBRARIES} 
-          geom_lib
-          nr_lib
+  ${Boost_LIBRARIES} 
+  geom_lib
+  nr_lib
 )
 
 # Enable testing
