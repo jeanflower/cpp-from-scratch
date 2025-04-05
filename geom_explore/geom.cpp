@@ -775,6 +775,30 @@ namespace geom_examples {
     throw("Maximum number of iterations exceeded in newtonRaphson");
   }
 
+
+  char makeCharFromColor(uint32_t color) {
+    if (color == RED) {
+      return 'R';
+    } else if (color == GREEN) {
+      return 'G';
+    } else if (color == BLUE) {
+      return 'B';
+    } else if (color == YELLOW) {
+      return 'Y';
+    } else if (color == MAGENTA) {
+      return 'M';
+    } else if (color == CYAN) {
+      return 'C';
+    } else {
+      return 'X';
+    }
+  }
+  
+  //char makeCharFromColor(uint32_t color) {                                        
+  //    uint32_t i = ((color&0x800000) >> 21)|((color&0x008000)>>14)|((color&0x000080)>>7);
+  //    return "BGCRMY#"[i];                                                       
+  //}   
+
   template <class T>
   class ColorPatch2D {
       
@@ -831,6 +855,8 @@ namespace geom_examples {
           std::cout << "add to existing collection for key (" 
             << key.X() << ", " << key.Y() << ")\n";
         }
+
+        std::cout << makeCharFromColor(key.color);
   
         kv.second.push_back(guess);
         addedToMap = true;
@@ -1037,6 +1063,7 @@ namespace geom_examples {
             localFoundSolutions
           );
         }
+        std::cout << "\n";
       }
       // Merge local results into the global map with locking
       std::lock_guard<std::mutex> lock(mtx);
@@ -1070,10 +1097,10 @@ namespace geom_examples {
     unsigned int numThreads = std::thread::hardware_concurrency();
     if (numThreads == 0) { numThreads = 2; } // Fallback in case hardware_concurrency returns 0
 
-    if (printDebug) {
+    //if (printDebug) {
       numThreads = 1;
       std::cout << "Using " << numThreads << " threads\n";
-    }
+    //}
 
     std::vector<std::thread> threads;
     int range = NUM_I / numThreads;
