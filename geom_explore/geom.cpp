@@ -847,7 +847,7 @@ namespace geom_examples {
     for (auto& kv : foundSolutions) {
       auto& key = kv.first;
       if (printDebug) {
-        std::cout << "compare with (" << key.X() << ", " << key.Y() << ")\n";
+        std::cout << "compare " << newtonResult.X() << ", " << newtonResult.Y() << " with (" << key.X() << ", " << key.Y() << ")\n";
       }
 
       bool matchedRoot = patchMatcher(key, newtonResult);
