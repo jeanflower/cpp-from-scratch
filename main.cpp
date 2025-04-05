@@ -8,6 +8,7 @@
 
 int main(int argc, char *argv[]) {
   double origin_r = 0, origin_i = 0, radius = 2;
+  int num_r = 1000, num_i = 1000;
   char *end = NULL;
   if (argc > 1) {
     origin_r = strtod(argv[1], &end);
@@ -15,6 +16,12 @@ int main(int argc, char *argv[]) {
       origin_i = strtod(argv[2], &end);
       if (argc > 3) {
         radius = strtod(argv[3], &end);
+        if (argc > 4) {
+          num_i = strtod(argv[4], &end);
+          if (argc > 5) {
+            num_r = strtod(argv[5], &end);
+          }
+        }
       }
     }
   }
@@ -32,7 +39,7 @@ int main(int argc, char *argv[]) {
 
   // run this with the viewer open to see a plot
   // and interesting for performance comparisons
-  geom_examples::fractal(origin_r, origin_i, radius);
+  geom_examples::fractal(origin_r, origin_i, radius, num_r, num_i);
 
   // writs any accumulated geometry to a JSON file
   // which the viewer can read

@@ -1507,7 +1507,7 @@ namespace geom_examples {
   }
 
   template <class T>
-  void fractalTyped(double origin_r, double origin_i, double radius) {
+  void fractalTyped(double origin_r, double origin_i, double radius, int num_r, int num_i) {
     std::cout << "start timing for fractal\n";
 
     CubicFunction<T> f = zCubedMinus1<T>;
@@ -1535,8 +1535,8 @@ namespace geom_examples {
       if (exampleNumber == 0) {
 
         // how many points to sample in each direction
-        NUM_I = 1000;
-        NUM_J = 1000;
+        NUM_I = num_r; // real
+        NUM_J = num_i; // imaginary
         // size of the rectangle plotted for each sample point
         displaySize = 1;
 
@@ -1776,8 +1776,8 @@ namespace geom_examples {
 
   }
 
-    void fractal(double origin_r, double origin_i, double radius) {
-      fractalTyped<double>(origin_r, origin_i, radius);
+    void fractal(double origin_r, double origin_i, double radius, int num_r, int num_i) {
+      fractalTyped<double>(origin_r, origin_i, radius, num_r, num_i);
   }
 
   // A function of three variables uses (x,y, z)

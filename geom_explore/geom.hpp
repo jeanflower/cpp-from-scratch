@@ -109,5 +109,5 @@ namespace geom_examples {
   void testNewtonRaphson2Dinput();
   void testNewtonRaphson3Dinput();
 
-  void fractal(double origin_r, double origin_i, double radius);
+  void fractal(double origin_r, double origin_i, double radius, int numI, int numR);
 }
