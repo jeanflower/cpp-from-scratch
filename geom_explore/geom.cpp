@@ -747,14 +747,14 @@ namespace geom_examples {
 
       // use the provided StepFinder to work out where to go next
       inputT step = stepFinder.findStep(funcd, rootEstimate);
-      //if (printDebug) {
-      //  std::cout << "step is " << step.X() << ", " << step.Y() << "\n";
-      //}
+      if (printDebug) {
+        std::cout << "step is " << step.X() << ", " << step.Y() << "\n";
+      }
       // apply the step
       rootEstimate = rootEstimate - step;
-      //if (printDebug) {
-      //  std::cout << "j is " << j << " and rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
-      //}
+      if (printDebug) {
+        std::cout << "j is " << j << " and rootEstimate is " << rootEstimate.X() << ", " << rootEstimate.Y() << "\n";
+      }
 
       // use the provided RangeChecker to see if we have jumped out of range
       // and should stop
@@ -1552,6 +1552,8 @@ namespace geom_examples {
   void fractalTyped(double origin_r, double origin_i, double radius, int num_r, int num_i) {
     std::cout << "start timing for fractal\n";
 
+    std::cout << std::setprecision(15);
+
     CubicFunction<T> f = zCubedMinus1<T>;
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>> foundSolutions;
     int displaySize = 5;
@@ -1816,6 +1818,7 @@ namespace geom_examples {
 
     }
 
+    std::cout << std::defaultfloat;
   }
 
     void fractal(double origin_r, double origin_i, double radius, int num_r, int num_i) {
@@ -1964,8 +1967,6 @@ namespace geom_examples {
         outputT dfy = funcd.dfy(rootEstimate);
 
         if (printDebug) {
-          std::cout << std::fixed << std::setprecision(6) << std::setw(5);
-
           std::cout << "f is \n";
           std::cout << f.X() << "\t" << f.Y() << "\t" << f.Z() << "\n";
 
@@ -1974,8 +1975,6 @@ namespace geom_examples {
 
           std::cout << "dfy is \n";
           std::cout << dfy.X() << "\t" << dfy.Y() << "\t" << dfy.Z() << "\n";
-
-          std::cout << std::defaultfloat;
         }
 
 
