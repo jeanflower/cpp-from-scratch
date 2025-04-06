@@ -737,7 +737,7 @@ namespace geom_examples {
     ConvergenceChecker& convergenceChecker,
     const int MAX_ITERATIONS
   ) {
-    const bool printDebug = true;
+    const bool printDebug = false;
     if (printDebug) {
       std::cout << "\nStart NR at " << guess.X() << ", " << guess.Y() << "\n";
     }
@@ -841,7 +841,7 @@ namespace geom_examples {
     std::function<bool(ColorPatch2D<T>, Coords2D<T>)>& patchMatcher,
     std::map<ColorPatch2D<T>, std::vector<Coords2D<T>>>& foundSolutions
   ){
-    bool printDebug = true;
+    bool printDebug = false;
 
     bool addedToMap = false;
     for (auto& kv : foundSolutions) {
@@ -858,7 +858,7 @@ namespace geom_examples {
             << key.X() << ", " << key.Y() << ")\n";
         }
 
-        std::cout << makeCharFromColor(key.color);
+        //std::cout << makeCharFromColor(key.color);
   
         kv.second.push_back(guess);
         addedToMap = true;
@@ -964,7 +964,7 @@ namespace geom_examples {
     const Coords2D<T>& rhs,
     T tol
   ) {
-    const bool printDebug = true;
+    const bool printDebug = false;
 
     // This is a pretty bizarre way to ask
     // "Have we converged to this key"
@@ -1082,7 +1082,7 @@ namespace geom_examples {
             localFoundSolutions
           );
         }
-        std::cout << "\n";
+        // std::cout << "\n";
       }
       // Merge local results into the global map with locking
       std::lock_guard<std::mutex> lock(mtx);
@@ -1116,10 +1116,10 @@ namespace geom_examples {
     unsigned int numThreads = std::thread::hardware_concurrency();
     if (numThreads == 0) { numThreads = 2; } // Fallback in case hardware_concurrency returns 0
 
-    //if (printDebug) {
+    if (printDebug) {
       numThreads = 1;
       std::cout << "Using " << numThreads << " threads\n";
-    //}
+    }
 
     std::vector<std::thread> threads;
     int range = NUM_I / numThreads;
