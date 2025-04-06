@@ -1036,6 +1036,19 @@ namespace geom_examples {
     T HIGH_Y,
     T tol_sq  // parameter-space tol-sqd
   ) {
+    if (NUM_I < 1 || NUM_J < 1) {
+      std::cerr << "Error: NUM_I and NUM_J must be greater than 0.\n";
+      return;
+    }
+    if ((NUM_I == 1 && LOW_X != HIGH_X) ||
+        (NUM_J == 1 && LOW_Y != HIGH_Y)) {
+      std::cerr << "Error: non-point parameter ranges need NUM > 1.\n";
+      return;
+    }
+
+    const double scale_i = NUM_I == 1 ? 1.0 : (1.0 / (NUM_I - 1));
+    const double scale_j = NUM_J == 1 ? 1.0 : (1.0 / (NUM_J - 1));
+
     bool printDebug = false;
     std::mutex mtx; // protects access to ptsConverged and ptsNotConverged
 
@@ -1049,8 +1062,8 @@ namespace geom_examples {
       for (int i = start_i; i < end_i; i++) {
         for (int j = 0; j < NUM_J; j++) {
           Coords2D<T> start(
-            LOW_X + (HIGH_X - LOW_X) / NUM_I * i,
-            LOW_Y + (HIGH_Y - LOW_Y) / NUM_J * j
+            LOW_X + (HIGH_X - LOW_X) * scale_i * i,
+            LOW_Y + (HIGH_Y - LOW_Y) * scale_j * j
           );
           Coords2D<T> newtonResult = NR2DConverges<T>(
             f, 
