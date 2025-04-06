@@ -974,8 +974,8 @@ namespace geom_examples {
     // some points say "no match" and get omitted from the plot
     const bool matched = (
       std::isnan(lhs.X()) && std::isnan(rhs.X())
-    ) || (abs(lhs.X() - rhs.X()) < tol
-      && abs(lhs.Y() - rhs.Y()) < 1e-6); 
+    ) || (std::fabs(lhs.X() - rhs.X()) < tol
+      && std::fabs(lhs.Y() - rhs.Y()) < 1e-6); 
     if (printDebug) {
       std::cout << "lhs (" << lhs.X() << ", " << lhs.Y() << ") "
         << "rhs (" << rhs.X() << ", " << rhs.Y() << ") "
