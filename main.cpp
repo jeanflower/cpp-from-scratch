@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
   // writs any accumulated geometry to a JSON file
   // which the viewer can read
-  geom_examples::writeGeometryToJSON();
+  // geom_examples::writeGeometryToJSON();
 
   std::cout << "Finished running main() -------------\n";
   return 0;
