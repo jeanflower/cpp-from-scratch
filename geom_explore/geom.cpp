@@ -1522,14 +1522,14 @@ namespace geom_examples {
     for (int j = 0; j < NUM_J; ++j) {
       for (int i = 0; i < NUM_I; ++i) {
         uint32_t color = imageColors[i][j];
-        std::cout << makeCharFromColor(color);
+        //std::cout << makeCharFromColor(color);
         uint32_t r = (color >> 16) & 0xFF;
         uint32_t g = (color >> 8) & 0xFF;
         uint32_t b = color & 0xFF;
         // write the pixel color
         outputFile << r << " " << g << " " << b << "\n";
       }
-      std::cout << "\n";
+      //std::cout << "\n";
     }
 
     clearView();
