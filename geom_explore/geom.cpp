@@ -1516,9 +1516,11 @@ namespace geom_examples {
     // use NUM_I and NUM_J to set the size of the image
     outputFile << NUM_I << " " << NUM_J << "\n";
     outputFile << "255\n";
-    // write pixel data
-    for (int i = 0; i < NUM_I; ++i) {
-      for (int j = 0; j < NUM_J; ++j) {
+    // write pixel data - swap rows and columns
+    // so that the image is not rotated 90 degrees
+    // and flipped upside down
+    for (int j = 0; j < NUM_J; ++j) {
+      for (int i = 0; i < NUM_I; ++i) {
         uint32_t color = imageColors[i][j];
         std::cout << makeCharFromColor(color);
         uint32_t r = (color >> 16) & 0xFF;
