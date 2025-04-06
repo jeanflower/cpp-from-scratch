@@ -980,6 +980,10 @@ namespace geom_examples {
       std::cout << "lhs (" << lhs.X() << ", " << lhs.Y() << ") "
         << "rhs (" << rhs.X() << ", " << rhs.Y() << ") "
         << "matched is " << matched << "\n";
+      std::cout << "abs(lhs.X() - rhs.X()) = " << abs(lhs.X() - rhs.X())
+        << " ?< " << tol << "\n";
+      std::cout << "abs(lhs.Y() - rhs.Y()) = " << abs(lhs.Y() - rhs.Y())
+        << " ?< " << 1e-6 << "\n";
     }
     return matched;  
   }
